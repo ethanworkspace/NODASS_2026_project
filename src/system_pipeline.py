@@ -224,6 +224,79 @@ def collect_source_candidates(water_stations: list[dict[str, object]]) -> list[d
     return candidates
 
 
+def expected_pollutants_from_emi_items(items: set[str]) -> list[str]:
+    mapping = [
+        ("懸浮", "suspended_solid"),
+        ("葉綠素", "chlorophyll_a"),
+        ("氨氮", "ammonia_nitrogen"),
+        ("硝酸", "nitrate_nitrogen"),
+        ("亞硝酸", "nitrite_nitrogen"),
+        ("磷", "orthophosphate"),
+        ("鎘", "cadmium"),
+        ("鉻", "chromium"),
+        ("銅", "copper"),
+        ("鋅", "zinc"),
+        ("鉛", "lead"),
+        ("汞", "mercury"),
+    ]
+    text = " ".join(items)
+    matched = [target for keyword, target in mapping if keyword in text]
+    return matched or ["ammonia_nitrogen", "orthophosphate", "suspended_solid"]
+
+
+def read_moenv_discharge_sources(project_root: Path, start_index: int) -> list[dict[str, object]]:
+    path = project_root / "data" / "external" / "moenv_ems_s_03.json"
+    if not path.exists():
+        return []
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        records = data.get("records") or data.get("result") or []
+    elif isinstance(data, list):
+        records = data
+    else:
+        records = []
+
+    grouped: dict[str, dict[str, object]] = {}
+    pollutant_items: dict[str, set[str]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        lon = parse_float(str(record.get("longitude", "")))
+        lat = parse_float(str(record.get("latitude", "")))
+        if lon is None or lat is None:
+            continue
+        key = f"{record.get('ems_no', '')}_{record.get('let', '')}_{lon:.6f}_{lat:.6f}"
+        pollutant_items.setdefault(key, set()).add(str(record.get("emi_item", "")))
+        if key in grouped:
+            continue
+        grouped[key] = {
+            "source_name": f"{record.get('fac_name', '未命名事業')} {record.get('let', '')}".strip(),
+            "source_type": "official_discharge",
+            "lon": lon,
+            "lat": lat,
+            "official_id": record.get("ems_no", ""),
+            "discharge_no": record.get("let", ""),
+            "recipient_water": record.get("let_watertype", ""),
+            "permit_no": record.get("per_no", ""),
+            "permitted_water": record.get("per_water", ""),
+            "data_basis": "環境部水污染源許可及申報資料 EMS_S_03 API",
+        }
+
+    sources: list[dict[str, object]] = []
+    for offset, (key, source) in enumerate(grouped.items(), start=start_index):
+        source["source_id"] = f"SRC_{offset:04d}"
+        source["known_pollutants"] = ";".join(expected_pollutants_from_emi_items(pollutant_items.get(key, set())))
+        sources.append(source)
+    return sources
+
+
+def read_fetch_status(project_root: Path) -> dict[str, object]:
+    path = project_root / "data" / "external" / "fetch_status.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def read_rainfall_latest(project_root: Path) -> list[dict[str, object]]:
     path = project_root / "data" / "external" / "cwa_rainfall_latest.json"
     if not path.exists():
@@ -549,29 +622,36 @@ def write_external_catalog(project_root: Path) -> None:
             "資料集": "雨量觀測站-雨量資料",
             "提供機關": "交通部中央氣象署",
             "用途": "補足異常事件前後 72 小時降雨條件",
-            "網址": "https://data.gov.tw/dataset/9177?page=1",
-            "狀態": "已登錄，待 API 金鑰或批次下載設定",
+            "網址": "https://opendata.cwa.gov.tw/user/authkey",
+            "狀態": "已串接，需設定 CWA_API_KEY",
         },
         {
-            "資料集": "即時水位資料",
+            "資料集": "水污染源許可及申報資料 EMS_S_03",
+            "提供機關": "環境部",
+            "用途": "校正事業放流口、排放污染物、排放量與承受水體",
+            "網址": "https://data.moenv.gov.tw/api/v2/EMS_S_03",
+            "狀態": "已串接，需設定 MOENV_API_KEY",
+        },
+        {
+            "資料集": "FHY 河川與流域資料",
             "提供機關": "經濟部水利署",
             "用途": "補足河川水位與逕流支持度",
-            "網址": "https://data.gov.tw/dataset/25768",
-            "狀態": "已登錄，待 API 匯入",
+            "網址": "https://fhy.wra.gov.tw/Api",
+            "狀態": "待申請 WRA_API_KEY",
         },
         {
-            "資料集": "河川水位測站站況",
-            "提供機關": "經濟部水利署",
-            "用途": "建立河川測站、流域與水位站 metadata",
-            "網址": "https://data.gov.tw/dataset/22227",
-            "狀態": "已登錄，待 API 匯入",
+            "資料集": "中央氣象署海象資料",
+            "提供機關": "交通部中央氣象署",
+            "用途": "補足浮標、潮位、風浪流觀測",
+            "網址": "https://ocean.cwa.gov.tw/V2/data_interface/datasets",
+            "狀態": "待會員登入或下載權限",
         },
         {
-            "資料集": "水污染源許可及申報資料",
-            "提供機關": "環境部",
-            "用途": "校正污水廠、事業放流口、排放污染物與排放量",
-            "網址": "https://data.moenv.gov.tw/",
-            "狀態": "已登錄，需以環境部開放資料或平台匯出檔接入",
+            "資料集": "NODASS 國家海洋資料庫",
+            "提供機關": "國家海洋研究院",
+            "用途": "補足海流、風場、波浪、海溫、鹽度、葉綠素與 AIS",
+            "網址": "https://nodass.namr.gov.tw/data",
+            "狀態": "待登入或資料申請",
         },
     ]
     write_csv(
@@ -625,10 +705,15 @@ def build_dashboard(
         ],
         "sources": sources,
         "rainfall_station_count": len(rainfall_rows),
+        "official_discharge_source_count": len(
+            [source for source in sources if source.get("source_type") == "official_discharge"]
+        ),
+        "external_status": read_fetch_status(project_root),
     }
     (project_root / "dashboard" / "system_data.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    return
     html = f"""<!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -744,6 +829,7 @@ def run_initial_system(data_root: Path, project_root: Path) -> dict[str, int]:
     water_stations = [s for s in stations if s["station_type"] == "water_quality"]
     met_stations = [s for s in stations if s["station_type"] == "metocean"]
     sources = collect_source_candidates(water_stations)
+    sources.extend(read_moenv_discharge_sources(project_root, len(sources) + 1))
     rainfall_rows = read_rainfall_latest(project_root)
     observations = read_water_quality(data_root)
     events = detect_anomaly_events(observations)
@@ -765,7 +851,20 @@ def run_initial_system(data_root: Path, project_root: Path) -> dict[str, int]:
     write_csv(
         processed / "source_candidates.csv",
         sources,
-        ["source_id", "source_name", "source_type", "lon", "lat", "known_pollutants", "data_basis"],
+        [
+            "source_id",
+            "source_name",
+            "source_type",
+            "lon",
+            "lat",
+            "known_pollutants",
+            "data_basis",
+            "official_id",
+            "discharge_no",
+            "recipient_water",
+            "permit_no",
+            "permitted_water",
+        ],
     )
     write_csv(
         processed / "anomaly_events.csv",

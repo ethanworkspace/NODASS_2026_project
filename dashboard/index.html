@@ -3,114 +3,171 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NODASS 初版系統</title>
+  <title>NODASS 海岸污染來源追蹤 AI</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    body { margin:0; font-family:"Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; background:#f5f7f8; color:#1a252b; }
-    .layout { display:grid; grid-template-columns:250px 1fr; min-height:100vh; }
-    aside { background:#10363d; color:white; padding:24px 18px; }
-    .brand { font-size:20px; font-weight:800; line-height:1.35; margin-bottom:24px; }
-    nav div { padding:10px 12px; border-radius:8px; margin-bottom:8px; color:#d8ebed; }
-    nav .active { background:#1f545d; color:white; }
-    main { padding:26px; }
-    h1 { margin:0 0 8px; font-size:28px; }
-    h2 { font-size:19px; margin:0 0 14px; }
-    .muted { color:#61727a; line-height:1.6; }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:20px 0; }
-    .card, section { background:white; border:1px solid #d8e1e5; border-radius:8px; padding:16px; }
-    .value { font-size:28px; font-weight:800; }
-    .label { color:#61727a; font-size:14px; margin-bottom:8px; }
-    .grid { display:grid; grid-template-columns:1.25fr .9fr; gap:18px; align-items:start; }
-    .full { grid-column:1 / -1; }
-    table { width:100%; border-collapse:collapse; font-size:14px; }
-    th, td { border-bottom:1px solid #d8e1e5; padding:10px 8px; text-align:right; white-space:nowrap; }
-    th:first-child, td:first-child { text-align:left; }
-    th { color:#61727a; background:#f8fafb; }
-    .badge { display:inline-block; padding:4px 9px; border-radius:999px; background:#006d77; color:white; font-size:12px; }
-    .warn { background:#fff6e4; border:1px solid #ead39b; padding:12px; border-radius:8px; color:#6d4d08; margin-top:14px; }
-    @media (max-width:960px) { .layout,.grid,.stats { grid-template-columns:1fr; } }
+    :root {
+      --bg: #f4f7f8; --panel: #fff; --ink: #17252b; --muted: #62737b;
+      --line: #d8e1e5; --nav: #10353d; --nav2: #1f525c; --teal: #006d77;
+      --cyan: #2a9d8f; --blue: #386fa4; --gold: #d99a1e; --red: #c84c4c;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; letter-spacing: 0; }
+    button, input, select { font: inherit; }
+    .app { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
+    aside { background: var(--nav); color: #f7fcfd; padding: 24px 18px; position: sticky; top: 0; height: 100vh; }
+    .brand { font-size: 20px; font-weight: 800; line-height: 1.35; margin-bottom: 22px; }
+    .nav-button { width: 100%; border: 0; color: #d6e8eb; background: transparent; border-radius: 8px; padding: 11px 12px; margin-bottom: 7px; text-align: left; cursor: pointer; }
+    .nav-button.active, .nav-button:hover { color: white; background: var(--nav2); }
+    main { padding: 24px; min-width: 0; }
+    .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 28px; } h2 { margin: 0 0 12px; font-size: 19px; } h3 { margin: 0 0 8px; font-size: 16px; }
+    .muted { color: var(--muted); line-height: 1.6; margin: 0; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 13px; font-weight: 700; cursor: pointer; }
+    .btn.primary { background: var(--teal); color: white; border-color: var(--teal); }
+    .stats { display: grid; grid-template-columns: repeat(5, minmax(135px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .card, section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .label { color: var(--muted); font-size: 14px; margin-bottom: 7px; } .value { font-size: 26px; font-weight: 800; }
+    .toolbar { display: grid; grid-template-columns: 1fr 170px 170px; gap: 10px; margin-bottom: 14px; }
+    input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; background: white; color: var(--ink); }
+    .grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 16px; align-items: start; } .full { grid-column: 1 / -1; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; } th { color: var(--muted); background: #f8fafb; font-weight: 700; }
+    tr.clickable { cursor: pointer; } tr.clickable:hover, tr.selected { background: #eef7f8; }
+    .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; padding: 4px 9px; border-radius: 999px; background: var(--teal); color: white; font-size: 12px; font-weight: 700; }
+    .badge.high { background: var(--red); } .badge.mid { background: var(--gold); } .badge.low { background: var(--blue); }
+    .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfcfc; }
+    .metric strong { display: block; font-size: 17px; margin-top: 4px; }
+    .bars { display: grid; gap: 11px; } .bar-row { display: grid; grid-template-columns: 130px 1fr 56px; gap: 10px; align-items: center; }
+    .track { height: 10px; border-radius: 999px; background: #e7edf0; overflow: hidden; } .fill { height: 100%; border-radius: inherit; background: var(--cyan); }
+    .map { min-height: 300px; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(90deg, rgba(56,111,164,.12) 1px, transparent 1px), linear-gradient(rgba(56,111,164,.12) 1px, transparent 1px), #edf7f8; background-size: 34px 34px; position: relative; overflow: hidden; }
+    .coast { position: absolute; left: 40px; top: -26px; width: 150px; height: 360px; background: #d9e8d2; border-right: 4px solid #7ba47d; transform: rotate(10deg); }
+    .dot { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .dot.event { left: 47%; top: 55%; background: var(--red); } .dot.source { background: var(--gold); }
+    .dot.s0 { left: 36%; top: 42%; } .dot.s1 { left: 29%; top: 59%; } .dot.s2 { left: 58%; top: 37%; }
+    .vector { position: absolute; left: 49%; top: 47%; width: 112px; height: 3px; background: var(--cyan); transform-origin: left center; }
+    .vector:after { content: ""; position: absolute; right: -1px; top: -5px; border-left: 11px solid var(--cyan); border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+    .note { background: #fff7e5; border: 1px solid #ecd49b; color: #6f520a; border-radius: 8px; padding: 12px; line-height: 1.6; }
+    .source-list, .api-grid { display: grid; gap: 12px; } .api-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .source-card, .api-card { border: 1px solid var(--line); border-radius: 8px; padding: 13px; background: #fbfcfc; line-height: 1.55; }
+    .source-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .progress { height: 9px; border-radius: 999px; background: #e7edf0; overflow: hidden; margin-top: 10px; } .progress span { display: block; height: 100%; background: var(--teal); }
+    .loading { padding: 32px; text-align: center; color: var(--muted); }
+    @media (max-width: 1080px) { .app, .grid, .stats, .api-grid, .toolbar { grid-template-columns: 1fr; } aside { position: static; height: auto; } .topbar { display: grid; } .actions { justify-content: flex-start; } }
   </style>
 </head>
 <body>
-  <div class="layout">
-    <aside>
-      <div class="brand">NODASS<br>污染來源追蹤 AI</div>
-      <nav>
-        <div class="active">總覽</div>
-        <div>異常事件</div>
-        <div>來源追蹤</div>
-        <div>時空一致性</div>
-        <div>資料補齊</div>
-      </nav>
-    </aside>
-    <main>
-      <h1>初版系統執行結果</h1>
-      <p class="muted">系統已完成水質異常偵測、候選來源建立、72 小時海氣象事件窗分析與時空一致性來源篩選。</p>
-      <div class="stats">
-        <div class="card"><div class="label">異常事件</div><div class="value">30</div></div>
-        <div class="card"><div class="label">候選來源</div><div class="value">93</div></div>
-        <div class="card"><div class="label">來源排序結果</div><div class="value">150</div></div>
-        <div class="card"><div class="label">時空窗</div><div class="value">±72h</div></div>
-      </div>
-      <div class="grid">
-        <section>
-          <h2>前 10 筆異常事件</h2>
-          <table>
-            <thead><tr><th>事件</th><th>測站</th><th>時間</th><th>污染物</th><th>實測值</th><th>異常分數</th></tr></thead>
-            <tbody><tr><td>EVT_0498</td><td>高屏溪出海口</td><td>2024-07-30 00:00</td><td>suspended_solid</td><td>2060.0</td><td>256.4599</td></tr>
-<tr><td>EVT_0433</td><td>花蓮溪河口</td><td>2025-10-30 00:00</td><td>suspended_solid</td><td>1750.0</td><td>217.7386</td></tr>
-<tr><td>EVT_0499</td><td>高屏溪出海口</td><td>2024-10-07 00:00</td><td>suspended_solid</td><td>1240.0</td><td>154.0358</td></tr>
-<tr><td>EVT_0219</td><td>安南區外海1</td><td>2023-11-29 07:36</td><td>zinc</td><td>204.8</td><td>147.5952</td></tr>
-<tr><td>EVT_0224</td><td>安南區外海2</td><td>2023-11-29 08:18</td><td>zinc</td><td>135.9</td><td>97.354</td></tr>
-<tr><td>EVT_0270</td><td>新南崁溪口</td><td>2024-03-16 11:45</td><td>orthophosphate</td><td>1.54</td><td>91.7882</td></tr>
-<tr><td>EVT_0197</td><td>大鵬灣灣內-1</td><td>2024-07-30 00:00</td><td>chlorophyll_a</td><td>50.8</td><td>71.052</td></tr>
-<tr><td>EVT_0393</td><td>知本溪口</td><td>2024-10-27 00:00</td><td>suspended_solid</td><td>526.0</td><td>64.8519</td></tr>
-<tr><td>EVT_0104</td><td>卑南溪口外4海浬</td><td>2023-03-21 11:02</td><td>nitrite_nitrogen</td><td>0.62</td><td>61.0</td></tr>
-<tr><td>EVT_0306</td><td>杉福潮間帶</td><td>2025-06-01 00:00</td><td>lead</td><td>5.48</td><td>58.812</td></tr></tbody>
-          </table>
-        </section>
-        <section>
-          <h2>最高異常事件來源排序</h2>
-          <p class="muted">事件：EVT_0498，測站：高屏溪出海口</p>
-          <table>
-            <thead><tr><th>候選來源</th><th>類型</th><th>距離 km</th><th>72h 可達</th><th>分數</th><th>信心</th></tr></thead>
-            <tbody><tr><td>東港溪出海口</td><td>harbor</td><td>1.433</td><td>是</td><td>0.8428</td><td>高</td></tr>
-<tr><td>高屏溪東港溪之間-1</td><td>harbor</td><td>0.694</td><td>是</td><td>0.7465</td><td>高</td></tr>
-<tr><td>高屏溪口外4海浬</td><td>river</td><td>7.103</td><td>是</td><td>0.6109</td><td>中</td></tr>
-<tr><td>白沙尾漁港港外向外延伸500m(右)</td><td>harbor</td><td>13.241</td><td>是</td><td>0.6101</td><td>中</td></tr>
-<tr><td>白沙尾港港外(右)</td><td>harbor</td><td>13.729</td><td>是</td><td>0.609</td><td>中</td></tr></tbody>
-          </table>
-          <div class="warn">時空一致性規則：僅保留事件前後 72 小時內，符合上風、上游流向或流速距離可達條件的候選來源。</div>
-        </section>
-        <section class="full">
-          <h2>最高異常事件的 72 小時事件窗</h2>
-          <table>
-            <thead><tr><th>事件窗開始</th><th>事件窗結束</th><th>海氣象筆數</th><th>主導風向</th><th>主導流向</th><th>平均流速</th><th>潮差</th><th>最近雨量站</th><th>雨量狀態</th></tr></thead>
-            <tbody><tr>
-              <td>2024-07-27 00:00:00</td>
-              <td>2024-08-02 00:00:00</td>
-              <td>4600</td>
-              <td>164.1</td>
-              <td>290.5</td>
-              <td>0.264</td>
-              <td>1.43</td>
-              <td>汕尾</td>
-              <td>已接入即時雨量，但時間不屬於此歷史事件窗</td>
-            </tr></tbody>
-          </table>
-        </section>
-        <section class="full">
-          <h2>外部資料串接狀態</h2>
-          <table>
-            <thead><tr><th>資料</th><th>狀態</th><th>系統用途</th></tr></thead>
-            <tbody>
-              <tr><td>中央氣象署雨量資料</td><td><span class="badge">已下載並解析 1336 站</span></td><td>配對最近雨量站，檢查是否落在 72 小時事件窗</td></tr>
-              <tr><td>水利署水位與河川站況</td><td><span class="badge">官方服務暫時不可用</span></td><td>後續補足河川水位、流量與逕流支持度</td></tr>
-              <tr><td>環境部水污染源許可及申報資料</td><td><span class="badge">待授權或匯入檔</span></td><td>校正正式放流口、排放污染物與排放量</td></tr>
-            </tbody>
-          </table>
-        </section>
-      </div>
-    </main>
-  </div>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useEffect, useMemo, useState } = React;
+    const pollutantLabels = { suspended_solid: "懸浮固體", chlorophyll_a: "葉綠素 a", ammonia_nitrogen: "氨氮", nitrate_nitrogen: "硝酸鹽氮", orthophosphate: "正磷酸鹽", nitrite_nitrogen: "亞硝酸鹽氮", silicate: "矽酸鹽", zinc: "鋅", copper: "銅", lead: "鉛", cadmium: "鎘", chromium: "鉻", mercury: "汞" };
+    const groupLabels = { suspended_solids: "懸浮固體", chlorophyll: "葉綠素", nutrients: "營養鹽", heavy_metals: "重金屬" };
+    const sourceTypeLabels = { river: "河川輸入", harbor: "港區活動", industrial: "工業來源", wastewater_treatment: "污水處理", official_discharge: "環境部放流口", coastal_station: "海岸測站" };
+    function number(value, digits = 0) { if (value === null || value === undefined || value === "") return "無資料"; return Number(value).toLocaleString("zh-TW", { maximumFractionDigits: digits }); }
+    function confidenceClass(level) { if (level === "高") return "badge high"; if (level === "中") return "badge mid"; return "badge low"; }
+    function loadSystemData() { return fetch("./data/system_data.json").then((res) => res.ok ? res.json() : Promise.reject()).catch(() => fetch("./system_data.json").then((res) => res.json())); }
+
+    function App() {
+      const [data, setData] = useState(null);
+      const [activeTab, setActiveTab] = useState("總覽");
+      const [query, setQuery] = useState("");
+      const [group, setGroup] = useState("全部");
+      const [confidence, setConfidence] = useState("全部");
+      const [selectedId, setSelectedId] = useState(null);
+      useEffect(() => { loadSystemData().then((payload) => { setData(payload); setSelectedId(payload.events?.[0]?.event_id || null); }); }, []);
+      const events = data?.events || [], rankings = data?.rankings || [], windows = data?.windows || [], sources = data?.sources || [];
+      const selectedEvent = events.find((event) => event.event_id === selectedId) || events[0];
+      const selectedRankings = rankings.filter((row) => row.event_id === selectedEvent?.event_id);
+      const selectedWindow = windows.find((row) => row.event_id === selectedEvent?.event_id);
+      const filteredEvents = useMemo(() => events.filter((event) => {
+        const text = `${event.event_id} ${event.station_name} ${event.pollutant_name}`.toLowerCase();
+        const matchQuery = !query || text.includes(query.toLowerCase());
+        const matchGroup = group === "全部" || event.pollutant_group === group;
+        const eventRanks = rankings.filter((row) => row.event_id === event.event_id);
+        const matchConfidence = confidence === "全部" || eventRanks.some((row) => row.confidence_level === confidence);
+        return matchQuery && matchGroup && matchConfidence;
+      }), [events, rankings, query, group, confidence]);
+      const sourceTypeCounts = useMemo(() => sources.reduce((acc, source) => { acc[source.source_type] = (acc[source.source_type] || 0) + 1; return acc; }, {}), [sources]);
+      if (!data) return <div className="loading">正在載入 NODASS 系統資料...</div>;
+      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "資料補齊"];
+      return (
+        <div className="app">
+          <aside>
+            <div className="brand">NODASS<br />污染來源追蹤 AI</div>
+            {tabs.map((tab) => <button key={tab} className={`nav-button ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>{tab}</button>)}
+          </aside>
+          <main>
+            <div className="topbar">
+              <div><h1>海岸生態壓力與污染傳輸來源追蹤</h1><p className="muted">React 互動版已載入本次運算資料，可篩選異常事件、查看 72 小時時空窗與候選來源排序。</p></div>
+              <div className="actions"><button className="btn" onClick={() => setActiveTab("資料補齊")}>查看 API 與資料狀態</button><button className="btn" onClick={() => setActiveTab("時空一致性")}>檢視時空規則</button><button className="btn primary" onClick={() => setActiveTab("異常事件")}>瀏覽事件</button></div>
+            </div>
+            <div className="stats">
+              <div className="card"><div className="label">異常事件</div><div className="value">{number(events.length)}</div></div>
+              <div className="card"><div className="label">候選來源</div><div className="value">{number(sources.length)}</div></div>
+              <div className="card"><div className="label">來源排序</div><div className="value">{number(rankings.length)}</div></div>
+              <div className="card"><div className="label">雨量站</div><div className="value">{number(data.rainfall_station_count)}</div></div>
+              <div className="card"><div className="label">環境部放流口</div><div className="value">{number(data.official_discharge_source_count || 0)}</div></div>
+            </div>
+            {activeTab === "總覽" && <Overview events={events} sourceTypeCounts={sourceTypeCounts} sources={sources} selectedEvent={selectedEvent} setSelectedId={setSelectedId} window={selectedWindow} rankings={selectedRankings} />}
+            {activeTab === "異常事件" && <Events events={filteredEvents} selectedEvent={selectedEvent} setSelectedId={setSelectedId} query={query} setQuery={setQuery} group={group} setGroup={setGroup} confidence={confidence} setConfidence={setConfidence} />}
+            {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} />}
+            {activeTab === "時空一致性" && <Consistency window={selectedWindow} />}
+            {activeTab === "資料補齊" && <DataNeeds rainfallCount={data.rainfall_station_count} officialCount={data.official_discharge_source_count || 0} externalStatus={data.external_status || {}} />}
+          </main>
+        </div>
+      );
+    }
+
+    function Overview({ events, sourceTypeCounts, sources, selectedEvent, setSelectedId, window, rankings }) {
+      return <div className="grid">
+        <section><h2>最高風險事件</h2><EventTable events={events.slice(0, 8)} selectedEvent={selectedEvent} setSelectedId={setSelectedId} /></section>
+        <section><h2>來源類型分布</h2><div className="bars">{Object.entries(sourceTypeCounts).map(([type, count]) => <div className="bar-row" key={type}><span>{sourceTypeLabels[type] || type}</span><div className="track"><div className="fill" style={{ width: `${Math.max(8, count / sources.length * 100)}%` }}></div></div><span>{count}</span></div>)}</div></section>
+        <section className="full"><h2>目前選取事件</h2><EventDetail event={selectedEvent} window={window} rankings={rankings} /></section>
+      </div>;
+    }
+
+    function EventTable({ events, selectedEvent, setSelectedId }) {
+      return <div className="table-wrap"><table><thead><tr><th>事件</th><th>測站</th><th>時間</th><th>污染物</th><th>實測值</th><th>異常分數</th></tr></thead><tbody>{events.map((event) => <tr key={event.event_id} className={`clickable ${selectedEvent?.event_id === event.event_id ? "selected" : ""}`} onClick={() => setSelectedId(event.event_id)}><td>{event.event_id}</td><td>{event.station_name}</td><td>{event.detected_at}</td><td>{pollutantLabels[event.pollutant_name] || event.pollutant_name}</td><td>{number(event.observed_value, 2)}</td><td>{number(event.anomaly_score, 2)}</td></tr>)}</tbody></table></div>;
+    }
+
+    function Events({ events, selectedEvent, setSelectedId, query, setQuery, group, setGroup, confidence, setConfidence }) {
+      return <section><h2>異常事件查詢</h2><div className="toolbar"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋事件、測站或污染物" /><select value={group} onChange={(event) => setGroup(event.target.value)}><option>全部</option>{Object.keys(groupLabels).map((key) => <option value={key} key={key}>{groupLabels[key]}</option>)}</select><select value={confidence} onChange={(event) => setConfidence(event.target.value)}><option>全部</option><option>高</option><option>中</option><option>低</option></select></div><div className="table-wrap"><table><thead><tr><th>事件</th><th>測站</th><th>污染群組</th><th>污染物</th><th>時間</th><th>實測值</th><th>基準值</th><th>異常分數</th></tr></thead><tbody>{events.map((event) => <tr key={event.event_id} className={`clickable ${selectedEvent?.event_id === event.event_id ? "selected" : ""}`} onClick={() => setSelectedId(event.event_id)}><td>{event.event_id}</td><td>{event.station_name}</td><td>{groupLabels[event.pollutant_group] || event.pollutant_group}</td><td>{pollutantLabels[event.pollutant_name] || event.pollutant_name}</td><td>{event.detected_at}</td><td>{number(event.observed_value, 2)}</td><td>{number(event.baseline_value, 2)}</td><td>{number(event.anomaly_score, 2)}</td></tr>)}</tbody></table></div></section>;
+    }
+
+    function EventDetail({ event, window, rankings }) {
+      if (!event) return <p className="muted">尚無事件資料。</p>;
+      const top = rankings[0];
+      return <div className="summary-grid"><div className="metric"><span className="label">異常測站</span><strong>{event.station_name}</strong></div><div className="metric"><span className="label">污染物</span><strong>{pollutantLabels[event.pollutant_name] || event.pollutant_name}</strong></div><div className="metric"><span className="label">最高候選來源</span><strong>{top?.source_name || "無符合來源"}</strong></div><div className="metric"><span className="label">來源信心</span><strong>{top?.confidence_level || "無資料"}</strong></div><div className="metric"><span className="label">72 小時海氣象資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div><div className="metric"><span className="label">雨量狀態</span><strong>{window?.rain_status || "無資料"}</strong></div></div>;
+    }
+
+    function Tracing({ event, rankings, window }) {
+      return <div className="grid"><section><h2>候選來源排序</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="source-list">{rankings.map((row, index) => <div className="source-card" key={`${row.event_id}-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{row.confidence_level}信心</span></div><p className="muted">類型：{sourceTypeLabels[row.source_type] || row.source_type}，距離：{row.distance_km} km，72 小時可達：{row.reachable_within_72h ? "是" : "否"}</p><div className="progress"><span style={{ width: `${Math.min(100, row.source_score * 100)}%` }}></span></div></div>)}</div></section><section><h2>追蹤示意圖</h2><div className="map"><div className="coast"></div><div className="vector" style={{ transform: `rotate(${window?.dominant_current_direction || 240}deg)` }}></div><div className="dot event" title="異常測站"></div><div className="dot source s0" title="候選來源"></div><div className="dot source s1" title="候選來源"></div><div className="dot source s2" title="候選來源"></div></div><div className="note" style={{ marginTop: 12 }}>此圖為來源追蹤示意：實際排序由距離、流向、風向、污染物吻合度與 72 小時可達性共同計算。</div></section></div>;
+    }
+
+    function Consistency({ window }) {
+      return <div className="grid"><section><h2>事件窗條件</h2><div className="summary-grid"><div className="metric"><span className="label">事件窗開始</span><strong>{window?.window_start || "無資料"}</strong></div><div className="metric"><span className="label">事件窗結束</span><strong>{window?.window_end || "無資料"}</strong></div><div className="metric"><span className="label">海氣象筆數</span><strong>{number(window?.meteo_rows)}</strong></div><div className="metric"><span className="label">潮差</span><strong>{number(window?.tide_range, 3)} m</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">最近雨量站</span><strong>{window?.nearest_rain_station || "無資料"}</strong></div></div></section><section><h2>一致性規則</h2><div className="note">每個污染來源候選必須符合以下條件之一才會進入排序：事件前後 72 小時內依平均流速可達、來源位於上風方向、來源位於上游流向可達方向。未通過者直接排除。</div><div className="note" style={{ marginTop: 12 }}>雨量資料已接入最新觀測；若事件是歷史事件，系統會標示「時間不屬於此歷史事件窗」，不把即時雨量誤當成歷史佐證。</div></section></div>;
+    }
+
+    function DataNeeds({ rainfallCount, officialCount, externalStatus }) {
+      const status = externalStatus.sources || {};
+      const needs = [
+        ["中央氣象署開放資料授權碼", `已成功接入雨量資料，解析 ${number(rainfallCount)} 站；狀態：${status.cwa_rainfall?.message || "未更新"}`, "https://opendata.cwa.gov.tw/user/authkey"],
+        ["環境部水污染源許可及申報資料", `已成功接入 EMS_S_03，轉入 ${number(officialCount)} 個正式放流口候選來源；狀態：${status.moenv_ems_s_03?.message || "未更新"}`, "https://data.moenv.gov.tw/api/v2/EMS_S_03"],
+        ["水利署 FHY 河川/流域 API Key", `目前尚未接入；狀態：${status.wra_basin?.message || "未設定 WRA_API_KEY"}`, "https://fhy.wra.gov.tw/Api"],
+        ["中央氣象署海象資料會員權限", "需登入後下載更多浮標、潮位與海象資料，補足海流與潮位觀測密度。", "https://ocean.cwa.gov.tw/V2/data_interface/datasets"],
+        ["NODASS 國家海洋資料庫權限", "需登入或申請資料下載/API，取得 HYCOM、ROMS、POM、海流、風場、波浪、葉綠素與 AIS。", "https://nodass.namr.gov.tw/data"],
+        ["歷史污染事件與稽查紀錄", "尚未接入；需自行取得通報、裁罰、赤潮、魚群死亡、漏油或異常排放事件。", "https://statis.moenv.gov.tw/epanet/index.html"]
+      ];
+      return <section><h2>API 與資料狀態</h2><div className="api-grid">{needs.map(([name, detail, url]) => <div className="api-card" key={name}><h3>{name}</h3><p className="muted">{detail}</p><a className="btn" href={url} target="_blank" rel="noreferrer">開啟資料來源</a></div>)}</div></section>;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
 </body>
 </html>

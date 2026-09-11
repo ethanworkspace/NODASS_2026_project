@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from src.external_fetch import fetch_external_sources
 from src.ingestion.audit import audit_data_root
 from src.system_pipeline import run_initial_system
 
@@ -55,6 +56,14 @@ def run_system(data_root: Path) -> None:
     print("已更新 dashboard/index.html")
 
 
+def fetch_external() -> None:
+    """更新中央氣象署、環境部與水利署外部資料。"""
+    status = fetch_external_sources(project_root=Path.cwd())
+    print("外部資料更新完成")
+    for name, item in status.get("sources", {}).items():
+        print(f"{name}：{item.get('message')}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="NODASS 海岸生態壓力與污染來源追蹤 AI 工具。")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -62,6 +71,7 @@ def main() -> None:
     for command_name in ("audit", "build-stations", "detect-anomalies", "run-system"):
         command_parser = subparsers.add_parser(command_name)
         command_parser.add_argument("--data-root", required=True, type=Path)
+    subparsers.add_parser("fetch-external")
 
     args = parser.parse_args()
     if args.command == "audit":
@@ -72,6 +82,8 @@ def main() -> None:
         detect_anomalies(args.data_root)
     elif args.command == "run-system":
         run_system(args.data_root)
+    elif args.command == "fetch-external":
+        fetch_external()
 
 
 if __name__ == "__main__":

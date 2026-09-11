@@ -44,11 +44,25 @@ data/
 ## 執行方式
 
 ```bash
+python -m src.cli fetch-external
 python -m src.cli audit --data-root "C:/高雄科技大學_找點樂子"
 python -m src.cli build-stations --data-root "C:/高雄科技大學_找點樂子"
 python -m src.cli detect-anomalies --data-root "C:/高雄科技大學_找點樂子"
+python -m src.cli run-system --data-root "C:/高雄科技大學_找點樂子"
 ```
+
+## API 授權碼設定
+
+授權碼請只放在本機環境變數或 `.env`，不要寫進前端或 GitHub。
+
+| 環境變數 | 用途 | 申請網址 |
+| --- | --- | --- |
+| `CWA_API_KEY` | 中央氣象署雨量、海氣象與海象資料 | https://opendata.cwa.gov.tw/user/authkey |
+| `MOENV_API_KEY` | 環境部水污染源許可及申報資料 EMS_S_03 | https://data.moenv.gov.tw/api/v2/EMS_S_03 |
+| `WRA_API_KEY` | 水利署 FHY 河川、流域、水位與流量 API | https://fhy.wra.gov.tw/Api |
+
+目前已驗證中央氣象署與環境部 API 可讀取；水利署 FHY 端點需要水利署自己的 API key，不能使用中央氣象署授權碼。
 
 ## 目前狀態
 
-目前是第一版專案骨架，已建立資料契約、設定檔、模組邊界與初步處理流程，可接續開發資料整併、異常偵測與來源推估功能。
+目前已完成初版 React 互動前端、資料契約、設定檔、資料管線、異常偵測、72 小時時空一致性篩選與來源排序結果輸出。

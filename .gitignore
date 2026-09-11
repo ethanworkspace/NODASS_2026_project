@@ -10,3 +10,4 @@ data/external/
 models/artifacts/
 reports/event_reports/
 *.tar
+.env
