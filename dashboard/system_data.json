@@ -6432,5 +6432,217 @@
         "message": "未設定 WRA_API_KEY"
       }
     }
-  }
+  },
+  "method_evaluation": [
+    {
+      "method": "多測站時空貝氏異常偵測",
+      "reference": "Contamination Event Detection Method Using Multi-Stations Temporal-Spatial Information Based on Bayesian Network",
+      "score": 86,
+      "current_support": "目前已具備異常事件、鄰近測站、72 小時事件窗與方向可達條件。",
+      "reproduced_feature": "新增模型評估頁與升級節點，將單站異常擴充為多測站時空一致性框架。",
+      "next_step": "建立 Bayesian Network 節點：事件、上游測站、上風測站、流向、潮位、污染物群組。"
+    },
+    {
+      "method": "水動力 + Bayesian/MCMC 污染源反推",
+      "reference": "Identification of pollution sources in rivers using a hydrodynamic diffusion wave model and improved Bayesian-MCMC algorithm",
+      "score": 78,
+      "current_support": "目前以平均流速、方向角與 72 小時可達距離做規則式近似。",
+      "reproduced_feature": "新增漂流模擬升級欄位，標記哪些 NODASS 流場 API 可支援粒子追蹤。",
+      "next_step": "接入格網流場後，將候選來源分數改為後驗機率與不確定區間。"
+    },
+    {
+      "method": "主動式污染源追蹤 Agent",
+      "reference": "Active Tracking of Marine Pollution Sources: An Uncertainty-Aware Categorical Bayesian Framework for USVs",
+      "score": 72,
+      "current_support": "目前 Agent 已能偵測異常後自動列出候選來源與資料缺口。",
+      "reproduced_feature": "新增資料需求優先序，能指出下一個最該申請的 API 或資料層。",
+      "next_step": "加入不確定度與下一站建議，讓 Agent 推薦下一個採樣/查詢點。"
+    },
+    {
+      "method": "衛星葉綠素與懸浮物影像比對",
+      "reference": "NODASS Sentinel/GOCI satellite derived products and coastal chlorophyll studies",
+      "score": 90,
+      "current_support": "NODASS API 已提供 Sentinel-2/3 與 GOCI 葉綠素、懸浮物影像。",
+      "reproduced_feature": "新增 NODASS API 申請清單，將 CHL、TSM、SST、SSH 標為可補強模型的資料。",
+      "next_step": "依事件日期抓取 ±72 小時影像，計算測站周邊影像像素異常。"
+    }
+  ],
+  "nodass_api_requirements": [
+    {
+      "name": "GOCI satellite natural color image",
+      "class_code": "GOCI",
+      "kind": "Map Tile API",
+      "priority": "中",
+      "use_case": "事件當日海面影像背景，輔助判讀泥沙、雲遮與沿岸羽流位置。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/tiles/GOCI"
+    },
+    {
+      "name": "Sentinel-3 natural color image",
+      "class_code": "OLNT_S3",
+      "kind": "Map Tile API",
+      "priority": "中",
+      "use_case": "補足 2017 年後自然色影像，作為事件視覺佐證。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/tiles/OLNT_S3"
+    },
+    {
+      "name": "Sentinel-3 chlorophyll image",
+      "class_code": "OLNT_S3_CHL",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "直接支援葉綠素 a 異常偵測與空間擴散範圍比對。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/OLNT_S3_CHL"
+    },
+    {
+      "name": "Sentinel-3 total suspended materials image",
+      "class_code": "OLNT_S3_TSM",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "直接支援懸浮固體異常與河口泥沙羽流判讀。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/OLNT_S3_TSM"
+    },
+    {
+      "name": "Sentinel-2 chlorophyll image",
+      "class_code": "Sentinel2_CHL",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "高解析度近岸葉綠素 a 影像，用於測站周邊空間一致性。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/Sentinel2_CHL"
+    },
+    {
+      "name": "Sentinel-2 total suspended materials image",
+      "class_code": "Sentinel2_TSM",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "高解析度近岸懸浮物影像，用於河口、港區與工業外海事件。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/Sentinel2_TSM"
+    },
+    {
+      "name": "Sentinel-3 sea surface temperature image",
+      "class_code": "SLNT_S3_SST",
+      "kind": "KML image",
+      "priority": "中",
+      "use_case": "補足海溫壓力與水團邊界，輔助葉綠素與生態壓力判讀。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/SLNT_S3_SST"
+    },
+    {
+      "name": "GOCI chlorophyll image",
+      "class_code": "GOCI_CHL",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "高時間頻率葉綠素 a 歷史影像，用於 72 小時事件窗比對。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/GOCI_CHL"
+    },
+    {
+      "name": "GOCI total suspended solids image",
+      "class_code": "GOCI_TSS",
+      "kind": "KML image",
+      "priority": "高",
+      "use_case": "高時間頻率懸浮固體歷史影像，用於污染羽流追蹤。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/GOCI_TSS"
+    },
+    {
+      "name": "CMEMS sea surface height image",
+      "class_code": "CMEMS_SSH",
+      "kind": "KML image",
+      "priority": "中",
+      "use_case": "潮汐與海面高度背景，輔助傳輸方向與可達性評估。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/GOCI_SSH"
+    },
+    {
+      "name": "Observation station information from the Central Meteorological Administration",
+      "class_code": "CWA",
+      "kind": "text/station data",
+      "priority": "高",
+      "use_case": "建立中央氣象署浮標、潮位、海氣象測站 metadata。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/CWA"
+    },
+    {
+      "name": "Observation station information of the Transportation Technology Research Center",
+      "class_code": "IHMT",
+      "kind": "text/station data",
+      "priority": "高",
+      "use_case": "建立港研中心港區浮標與潮位站，支援港區來源追蹤。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/IHMT"
+    },
+    {
+      "name": "Observation station information from the WaterResources Agency",
+      "class_code": "WRA",
+      "kind": "text/station data",
+      "priority": "高",
+      "use_case": "建立水利署潮位/河口相關測站，補強上游與潮位條件。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/WRA"
+    },
+    {
+      "name": "Observation station information from National Academy of Marine Research",
+      "class_code": "NAMR",
+      "kind": "text/station data",
+      "priority": "高",
+      "use_case": "建立國海院浮標測站，補足近岸風浪流觀測。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/NAMR"
+    },
+    {
+      "name": "Monitoring data from observation stations",
+      "class_code": "OBS_DATA",
+      "kind": "text/parameter value",
+      "priority": "高",
+      "use_case": "取得風速、風向、浪高、流速、流向、潮位與海溫，直接服務 72 小時時空一致性。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/{station_id}/data"
+    },
+    {
+      "name": "Aquaculture Research Institute - Sea Temperature Satellite Cloud Image Files",
+      "class_code": "TFRIN_SST",
+      "kind": "PNG image",
+      "priority": "中",
+      "use_case": "補水試所海溫影像，輔助養殖區與生態壓力判讀。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/images/TFRIN_SST"
+    },
+    {
+      "name": "Ministry of the Environment - Offshore Wind Farm Seabed Station Information",
+      "class_code": "EPA/SM",
+      "kind": "text/station data",
+      "priority": "中",
+      "use_case": "補離岸風場海床站位，支援工程活動與生態壓力評估。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/EPA/SM"
+    },
+    {
+      "name": "Ministry of the Environment - Offshore Wind Farm Seawater Quality Station Information",
+      "class_code": "EPA/MWQ",
+      "kind": "text/station data",
+      "priority": "高",
+      "use_case": "補環境部離岸風場海水水質測站，納入水質異常背景。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/EPA/MWQ"
+    },
+    {
+      "name": "Aquaculture Research Institute - Water Quality Station Information",
+      "class_code": "TFRIN/MWQ",
+      "kind": "text/station data",
+      "priority": "中",
+      "use_case": "補水試所水質採集點，支援養殖區與近岸水質比對。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/obs/stations/TFRIN/MWQ"
+    },
+    {
+      "name": "Ocean Affairs Council - Taiwan National Park Marine Conservation Area",
+      "class_code": "OCA/NPMPA",
+      "kind": "Vector Data",
+      "priority": "中",
+      "use_case": "建立海洋保護區敏感受體圖層，排序污染風險與告警優先序。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/list/vector/OCA/NPMPA"
+    },
+    {
+      "name": "Ministry of the Environment - Offshore Wind Farm Ecological Survey",
+      "class_code": "EPA_ORGANISM",
+      "kind": "Vector Data",
+      "priority": "中",
+      "use_case": "補離岸風場生態調查，作為生態壓力與受體敏感度資料。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/list/organism/project/EPA"
+    },
+    {
+      "name": "Ocean Affairs Council - Outlying Islands Coast Photo Collection",
+      "class_code": "VNCPO",
+      "kind": "Vector Data",
+      "priority": "低",
+      "use_case": "作為海岸型態與事件報告輔助素材，非模型核心資料。",
+      "endpoint": "https://nodass.namr.gov.tw/noapi/namr/v1/query/VNCPO"
+    }
+  ]
 }

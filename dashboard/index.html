@@ -95,7 +95,7 @@
       }), [events, rankings, query, group, confidence]);
       const sourceTypeCounts = useMemo(() => sources.reduce((acc, source) => { acc[source.source_type] = (acc[source.source_type] || 0) + 1; return acc; }, {}), [sources]);
       if (!data) return <div className="loading">正在載入 NODASS 系統資料...</div>;
-      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "資料補齊"];
+      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "模型評估", "資料補齊"];
       return (
         <div className="app">
           <aside>
@@ -118,7 +118,8 @@
             {activeTab === "異常事件" && <Events events={filteredEvents} selectedEvent={selectedEvent} setSelectedId={setSelectedId} query={query} setQuery={setQuery} group={group} setGroup={setGroup} confidence={confidence} setConfidence={setConfidence} />}
             {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} />}
             {activeTab === "時空一致性" && <Consistency window={selectedWindow} />}
-            {activeTab === "資料補齊" && <DataNeeds rainfallCount={data.rainfall_station_count} officialCount={data.official_discharge_source_count || 0} externalStatus={data.external_status || {}} />}
+            {activeTab === "模型評估" && <MethodAssessment methods={data.method_evaluation || []} apis={data.nodass_api_requirements || []} />}
+            {activeTab === "資料補齊" && <DataNeeds rainfallCount={data.rainfall_station_count} officialCount={data.official_discharge_source_count || 0} externalStatus={data.external_status || {}} apis={data.nodass_api_requirements || []} />}
           </main>
         </div>
       );
@@ -154,7 +155,12 @@
       return <div className="grid"><section><h2>事件窗條件</h2><div className="summary-grid"><div className="metric"><span className="label">事件窗開始</span><strong>{window?.window_start || "無資料"}</strong></div><div className="metric"><span className="label">事件窗結束</span><strong>{window?.window_end || "無資料"}</strong></div><div className="metric"><span className="label">海氣象筆數</span><strong>{number(window?.meteo_rows)}</strong></div><div className="metric"><span className="label">潮差</span><strong>{number(window?.tide_range, 3)} m</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">最近雨量站</span><strong>{window?.nearest_rain_station || "無資料"}</strong></div></div></section><section><h2>一致性規則</h2><div className="note">每個污染來源候選必須符合以下條件之一才會進入排序：事件前後 72 小時內依平均流速可達、來源位於上風方向、來源位於上游流向可達方向。未通過者直接排除。</div><div className="note" style={{ marginTop: 12 }}>雨量資料已接入最新觀測；若事件是歷史事件，系統會標示「時間不屬於此歷史事件窗」，不把即時雨量誤當成歷史佐證。</div></section></div>;
     }
 
-    function DataNeeds({ rainfallCount, officialCount, externalStatus }) {
+    function MethodAssessment({ methods, apis }) {
+      const highApis = apis.filter((api) => api.priority === "高");
+      return <div className="grid"><section><h2>論文方法可復現度</h2><div className="source-list">{methods.map((item) => <div className="source-card" key={item.method}><div className="source-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p>{item.reproduced_feature}</p><div className="note">{item.next_step}</div></div>)}</div></section><section><h2>優先申請的 NODASS API</h2><div className="source-list">{highApis.slice(0, 8).map((api) => <div className="api-card" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
+    }
+
+    function DataNeeds({ rainfallCount, officialCount, externalStatus, apis }) {
       const status = externalStatus.sources || {};
       const needs = [
         ["中央氣象署開放資料授權碼", `已成功接入雨量資料，解析 ${number(rainfallCount)} 站；狀態：${status.cwa_rainfall?.message || "未更新"}`, "https://opendata.cwa.gov.tw/user/authkey"],
@@ -164,7 +170,7 @@
         ["NODASS 國家海洋資料庫權限", "需登入或申請資料下載/API，取得 HYCOM、ROMS、POM、海流、風場、波浪、葉綠素與 AIS。", "https://nodass.namr.gov.tw/data"],
         ["歷史污染事件與稽查紀錄", "尚未接入；需自行取得通報、裁罰、赤潮、魚群死亡、漏油或異常排放事件。", "https://statis.moenv.gov.tw/epanet/index.html"]
       ];
-      return <section><h2>API 與資料狀態</h2><div className="api-grid">{needs.map(([name, detail, url]) => <div className="api-card" key={name}><h3>{name}</h3><p className="muted">{detail}</p><a className="btn" href={url} target="_blank" rel="noreferrer">開啟資料來源</a></div>)}</div></section>;
+      return <div className="grid"><section><h2>API 與資料狀態</h2><div className="api-grid">{needs.map(([name, detail, url]) => <div className="api-card" key={name}><h3>{name}</h3><p className="muted">{detail}</p><a className="btn" href={url} target="_blank" rel="noreferrer">開啟資料來源</a></div>)}</div></section><section><h2>NODASS API 名稱清單</h2><div className="table-wrap"><table><thead><tr><th>API 名稱</th><th>代碼</th><th>優先</th><th>用途</th></tr></thead><tbody>{apis.map((api) => <tr key={api.class_code}><td>{api.name}</td><td>{api.class_code}</td><td>{api.priority}</td><td>{api.use_case}</td></tr>)}</tbody></table></div></section></div>;
     }
 
     ReactDOM.createRoot(document.getElementById("root")).render(<App />);
