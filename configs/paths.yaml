@@ -1,0 +1,18 @@
+project_name: NODASS 海岸生態壓力與污染來源追蹤 AI
+
+raw_data_root: "C:/高雄科技大學_找點樂子"
+
+folders:
+  water_quality: "歷史品管、即時海氣象水文觀測資料/海保署"
+  metocean:
+    - "歷史品管、即時海氣象水文觀測資料/CWA"
+    - "歷史品管、即時海氣象水文觀測資料/IHMT"
+    - "歷史品管、即時海氣象水文觀測資料/NAMR"
+    - "歷史品管、即時海氣象水文觀測資料/WRA"
+  ecology_sites: "海域生態監測站點/海域生態監測站點.json"
+  ecology_surveys: "全海域基礎生態調查"
+  edna: "全海域基礎生態調查環境DNA"
+
+outputs:
+  processed: "data/processed"
+  reports: "reports/event_reports"

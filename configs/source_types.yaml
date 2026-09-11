@@ -1,0 +1,33 @@
+source_types:
+  river:
+    expected_pollutants:
+      - suspended_solid
+      - ammonia_nitrogen
+      - nitrate_nitrogen
+      - orthophosphate
+  wastewater_treatment:
+    expected_pollutants:
+      - ammonia_nitrogen
+      - nitrate_nitrogen
+      - orthophosphate
+      - chlorophyll_a
+  industrial:
+    expected_pollutants:
+      - cadmium
+      - chromium
+      - copper
+      - zinc
+      - lead
+      - mercury
+  harbor:
+    expected_pollutants:
+      - suspended_solid
+      - copper
+      - zinc
+      - lead
+  aquaculture_agriculture:
+    expected_pollutants:
+      - ammonia_nitrogen
+      - nitrate_nitrogen
+      - orthophosphate
+

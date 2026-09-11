@@ -1,0 +1,26 @@
+anomaly:
+  default_method: seasonal_mad
+  min_history_count: 8
+  zscore_threshold: 3.0
+  mad_threshold: 3.5
+  percentile_high: 0.95
+
+pollutant_groups:
+  chlorophyll:
+    - chlorophyll_a
+  nutrients:
+    - ammonia_nitrogen
+    - nitrate_nitrogen
+    - orthophosphate
+    - nitrite_nitrogen
+    - silicate
+  suspended_solids:
+    - suspended_solid
+  heavy_metals:
+    - cadmium
+    - chromium
+    - copper
+    - zinc
+    - lead
+    - mercury
+

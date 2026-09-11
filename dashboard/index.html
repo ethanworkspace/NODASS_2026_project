@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NODASS 初版系統</title>
+  <style>
+    body { margin:0; font-family:"Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; background:#f5f7f8; color:#1a252b; }
+    .layout { display:grid; grid-template-columns:250px 1fr; min-height:100vh; }
+    aside { background:#10363d; color:white; padding:24px 18px; }
+    .brand { font-size:20px; font-weight:800; line-height:1.35; margin-bottom:24px; }
+    nav div { padding:10px 12px; border-radius:8px; margin-bottom:8px; color:#d8ebed; }
+    nav .active { background:#1f545d; color:white; }
+    main { padding:26px; }
+    h1 { margin:0 0 8px; font-size:28px; }
+    h2 { font-size:19px; margin:0 0 14px; }
+    .muted { color:#61727a; line-height:1.6; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:20px 0; }
+    .card, section { background:white; border:1px solid #d8e1e5; border-radius:8px; padding:16px; }
+    .value { font-size:28px; font-weight:800; }
+    .label { color:#61727a; font-size:14px; margin-bottom:8px; }
+    .grid { display:grid; grid-template-columns:1.25fr .9fr; gap:18px; align-items:start; }
+    .full { grid-column:1 / -1; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { border-bottom:1px solid #d8e1e5; padding:10px 8px; text-align:right; white-space:nowrap; }
+    th:first-child, td:first-child { text-align:left; }
+    th { color:#61727a; background:#f8fafb; }
+    .badge { display:inline-block; padding:4px 9px; border-radius:999px; background:#006d77; color:white; font-size:12px; }
+    .warn { background:#fff6e4; border:1px solid #ead39b; padding:12px; border-radius:8px; color:#6d4d08; margin-top:14px; }
+    @media (max-width:960px) { .layout,.grid,.stats { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">NODASS<br>污染來源追蹤 AI</div>
+      <nav>
+        <div class="active">總覽</div>
+        <div>異常事件</div>
+        <div>來源追蹤</div>
+        <div>時空一致性</div>
+        <div>資料補齊</div>
+      </nav>
+    </aside>
+    <main>
+      <h1>初版系統執行結果</h1>
+      <p class="muted">系統已完成水質異常偵測、候選來源建立、72 小時海氣象事件窗分析與時空一致性來源篩選。</p>
+      <div class="stats">
+        <div class="card"><div class="label">異常事件</div><div class="value">30</div></div>
+        <div class="card"><div class="label">候選來源</div><div class="value">93</div></div>
+        <div class="card"><div class="label">來源排序結果</div><div class="value">150</div></div>
+        <div class="card"><div class="label">時空窗</div><div class="value">±72h</div></div>
+      </div>
+      <div class="grid">
+        <section>
+          <h2>前 10 筆異常事件</h2>
+          <table>
+            <thead><tr><th>事件</th><th>測站</th><th>時間</th><th>污染物</th><th>實測值</th><th>異常分數</th></tr></thead>
+            <tbody><tr><td>EVT_0498</td><td>高屏溪出海口</td><td>2024-07-30 00:00</td><td>suspended_solid</td><td>2060.0</td><td>256.4599</td></tr>
+<tr><td>EVT_0433</td><td>花蓮溪河口</td><td>2025-10-30 00:00</td><td>suspended_solid</td><td>1750.0</td><td>217.7386</td></tr>
+<tr><td>EVT_0499</td><td>高屏溪出海口</td><td>2024-10-07 00:00</td><td>suspended_solid</td><td>1240.0</td><td>154.0358</td></tr>
+<tr><td>EVT_0219</td><td>安南區外海1</td><td>2023-11-29 07:36</td><td>zinc</td><td>204.8</td><td>147.5952</td></tr>
+<tr><td>EVT_0224</td><td>安南區外海2</td><td>2023-11-29 08:18</td><td>zinc</td><td>135.9</td><td>97.354</td></tr>
+<tr><td>EVT_0270</td><td>新南崁溪口</td><td>2024-03-16 11:45</td><td>orthophosphate</td><td>1.54</td><td>91.7882</td></tr>
+<tr><td>EVT_0197</td><td>大鵬灣灣內-1</td><td>2024-07-30 00:00</td><td>chlorophyll_a</td><td>50.8</td><td>71.052</td></tr>
+<tr><td>EVT_0393</td><td>知本溪口</td><td>2024-10-27 00:00</td><td>suspended_solid</td><td>526.0</td><td>64.8519</td></tr>
+<tr><td>EVT_0104</td><td>卑南溪口外4海浬</td><td>2023-03-21 11:02</td><td>nitrite_nitrogen</td><td>0.62</td><td>61.0</td></tr>
+<tr><td>EVT_0306</td><td>杉福潮間帶</td><td>2025-06-01 00:00</td><td>lead</td><td>5.48</td><td>58.812</td></tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>最高異常事件來源排序</h2>
+          <p class="muted">事件：EVT_0498，測站：高屏溪出海口</p>
+          <table>
+            <thead><tr><th>候選來源</th><th>類型</th><th>距離 km</th><th>72h 可達</th><th>分數</th><th>信心</th></tr></thead>
+            <tbody><tr><td>東港溪出海口</td><td>harbor</td><td>1.433</td><td>是</td><td>0.8428</td><td>高</td></tr>
+<tr><td>高屏溪東港溪之間-1</td><td>harbor</td><td>0.694</td><td>是</td><td>0.7465</td><td>高</td></tr>
+<tr><td>高屏溪口外4海浬</td><td>river</td><td>7.103</td><td>是</td><td>0.6109</td><td>中</td></tr>
+<tr><td>白沙尾漁港港外向外延伸500m(右)</td><td>harbor</td><td>13.241</td><td>是</td><td>0.6101</td><td>中</td></tr>
+<tr><td>白沙尾港港外(右)</td><td>harbor</td><td>13.729</td><td>是</td><td>0.609</td><td>中</td></tr></tbody>
+          </table>
+          <div class="warn">時空一致性規則：僅保留事件前後 72 小時內，符合上風、上游流向或流速距離可達條件的候選來源。</div>
+        </section>
+        <section class="full">
+          <h2>最高異常事件的 72 小時事件窗</h2>
+          <table>
+            <thead><tr><th>事件窗開始</th><th>事件窗結束</th><th>海氣象筆數</th><th>主導風向</th><th>主導流向</th><th>平均流速</th><th>潮差</th><th>最近雨量站</th><th>雨量狀態</th></tr></thead>
+            <tbody><tr>
+              <td>2024-07-27 00:00:00</td>
+              <td>2024-08-02 00:00:00</td>
+              <td>4600</td>
+              <td>164.1</td>
+              <td>290.5</td>
+              <td>0.264</td>
+              <td>1.43</td>
+              <td>汕尾</td>
+              <td>已接入即時雨量，但時間不屬於此歷史事件窗</td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section class="full">
+          <h2>外部資料串接狀態</h2>
+          <table>
+            <thead><tr><th>資料</th><th>狀態</th><th>系統用途</th></tr></thead>
+            <tbody>
+              <tr><td>中央氣象署雨量資料</td><td><span class="badge">已下載並解析 1336 站</span></td><td>配對最近雨量站，檢查是否落在 72 小時事件窗</td></tr>
+              <tr><td>水利署水位與河川站況</td><td><span class="badge">官方服務暫時不可用</span></td><td>後續補足河川水位、流量與逕流支持度</td></tr>
+              <tr><td>環境部水污染源許可及申報資料</td><td><span class="badge">待授權或匯入檔</span></td><td>校正正式放流口、排放污染物與排放量</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
