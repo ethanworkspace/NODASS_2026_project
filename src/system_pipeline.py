@@ -511,6 +511,13 @@ def read_fetch_status(project_root: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def read_nodass_probe(project_root: Path) -> dict[str, object]:
+    path = project_root / "data" / "external" / "nodass_api_probe.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def read_rainfall_latest(project_root: Path) -> list[dict[str, object]]:
     path = project_root / "data" / "external" / "cwa_rainfall_latest.json"
     if not path.exists():
@@ -925,6 +932,7 @@ def build_dashboard(
         "external_status": read_fetch_status(project_root),
         "method_evaluation": METHOD_EVALUATION,
         "nodass_api_requirements": NODASS_API_REQUIREMENTS,
+        "nodass_api_probe": read_nodass_probe(project_root),
     }
     (project_root / "dashboard" / "system_data.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.external_fetch import fetch_external_sources
 from src.ingestion.audit import audit_data_root
+from src.nodass_api_probe import probe_nodass_apis
 from src.system_pipeline import run_initial_system
 
 
@@ -64,6 +65,14 @@ def fetch_external() -> None:
         print(f"{name}：{item.get('message')}")
 
 
+def probe_nodass() -> None:
+    """探測 NODASS API 服務狀態。"""
+    summary = probe_nodass_apis(project_root=Path.cwd())
+    print("NODASS API 探測完成")
+    print(f"探測端點：{summary['total']}")
+    print(f"可讀取端點：{summary['readable']}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="NODASS 海岸生態壓力與污染來源追蹤 AI 工具。")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -72,6 +81,7 @@ def main() -> None:
         command_parser = subparsers.add_parser(command_name)
         command_parser.add_argument("--data-root", required=True, type=Path)
     subparsers.add_parser("fetch-external")
+    subparsers.add_parser("probe-nodass")
 
     args = parser.parse_args()
     if args.command == "audit":
@@ -84,6 +94,8 @@ def main() -> None:
         run_system(args.data_root)
     elif args.command == "fetch-external":
         fetch_external()
+    elif args.command == "probe-nodass":
+        probe_nodass()
 
 
 if __name__ == "__main__":

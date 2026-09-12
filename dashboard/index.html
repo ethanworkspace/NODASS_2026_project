@@ -95,7 +95,7 @@
       }), [events, rankings, query, group, confidence]);
       const sourceTypeCounts = useMemo(() => sources.reduce((acc, source) => { acc[source.source_type] = (acc[source.source_type] || 0) + 1; return acc; }, {}), [sources]);
       if (!data) return <div className="loading">正在載入 NODASS 系統資料...</div>;
-      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "模型評估", "資料補齊"];
+      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "模型評估", "NODASS 探測", "資料補齊"];
       return (
         <div className="app">
           <aside>
@@ -119,6 +119,7 @@
             {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} />}
             {activeTab === "時空一致性" && <Consistency window={selectedWindow} />}
             {activeTab === "模型評估" && <MethodAssessment methods={data.method_evaluation || []} apis={data.nodass_api_requirements || []} />}
+            {activeTab === "NODASS 探測" && <NodassProbe probe={data.nodass_api_probe || {}} />}
             {activeTab === "資料補齊" && <DataNeeds rainfallCount={data.rainfall_station_count} officialCount={data.official_discharge_source_count || 0} externalStatus={data.external_status || {}} apis={data.nodass_api_requirements || []} />}
           </main>
         </div>
@@ -158,6 +159,14 @@
     function MethodAssessment({ methods, apis }) {
       const highApis = apis.filter((api) => api.priority === "高");
       return <div className="grid"><section><h2>論文方法可復現度</h2><div className="source-list">{methods.map((item) => <div className="source-card" key={item.method}><div className="source-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p>{item.reproduced_feature}</p><div className="note">{item.next_step}</div></div>)}</div></section><section><h2>優先申請的 NODASS API</h2><div className="source-list">{highApis.slice(0, 8).map((api) => <div className="api-card" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
+    }
+
+    function NodassProbe({ probe }) {
+      const rows = probe.results || [];
+      const readable = rows.filter((row) => row.status === "可讀取" || row.status === "可讀取但非 JSON").length;
+      const imageRows = rows.filter((row) => row.url?.includes("/images/") || row.url?.includes("/tiles/"));
+      const stationRows = rows.filter((row) => row.url?.includes("/obs/"));
+      return <div className="grid"><section><h2>NODASS API 探測結果</h2><div className="summary-grid"><div className="metric"><span className="label">探測時間</span><strong>{probe.updated_at || "尚未探測"}</strong></div><div className="metric"><span className="label">探測端點</span><strong>{number(probe.total || rows.length)}</strong></div><div className="metric"><span className="label">可讀取</span><strong>{number(probe.readable || readable)}</strong></div><div className="metric"><span className="label">影像/圖磚端點</span><strong>{number(imageRows.length)}</strong></div></div><div className="note" style={{ marginTop: 12 }}>已可用的影像端點會回傳影像 URL、圖例 URL、日期與空間邊界；下一版可依異常事件日期自動抓取 ±72 小時影像清單。</div></section><section><h2>觀測站資料</h2><div className="source-list">{stationRows.map((row) => <div className="api-card" key={`${row.code}-${row.date1}-${row.status}`}><h3>{row.code} · {row.name}</h3><p className="muted">狀態：{row.status}，資料筆數：{number(row.record_count)}</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">開啟 API</a></div>)}</div></section><section className="full"><h2>完整探測清單</h2><div className="table-wrap"><table><thead><tr><th>API</th><th>期間</th><th>狀態</th><th>HTTP</th><th>資料筆數</th><th>回傳欄位</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.url}-${index}`}><td>{row.code}</td><td>{row.date1 ? `${row.date1} ~ ${row.date2}` : "站點資料"}</td><td>{row.status}</td><td>{row.http_status || "無"}</td><td>{number(row.record_count)}</td><td>{(row.sample_keys || []).slice(0, 5).join("、")}</td></tr>)}</tbody></table></div></section></div>;
     }
 
     function DataNeeds({ rainfallCount, officialCount, externalStatus, apis }) {
