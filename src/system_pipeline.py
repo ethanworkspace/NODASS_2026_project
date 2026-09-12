@@ -5,6 +5,8 @@ from math import atan2, cos, radians, sin, sqrt, degrees
 from pathlib import Path
 from statistics import mean, median
 
+from src.offshore_wind_quality import read_offshore_wind_quality_summary
+
 
 WATER_ROOT = Path("歷史品管、即時海氣象水文觀測資料") / "海保署"
 METOCEAN_ROOT = Path("歷史品管、即時海氣象水文觀測資料")
@@ -933,6 +935,7 @@ def build_dashboard(
         "method_evaluation": METHOD_EVALUATION,
         "nodass_api_requirements": NODASS_API_REQUIREMENTS,
         "nodass_api_probe": read_nodass_probe(project_root),
+        "offshore_wind_quality": read_offshore_wind_quality_summary(project_root),
     }
     (project_root / "dashboard" / "system_data.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"

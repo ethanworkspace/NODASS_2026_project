@@ -14,16 +14,16 @@
       --cyan: #2a9d8f; --blue: #386fa4; --gold: #d99a1e; --red: #c84c4c;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; letter-spacing: 0; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; letter-spacing: 0; font-size: 16px; line-height: 1.55; }
     button, input, select { font: inherit; }
     .app { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
     aside { background: var(--nav); color: #f7fcfd; padding: 24px 18px; position: sticky; top: 0; height: 100vh; }
     .brand { font-size: 20px; font-weight: 800; line-height: 1.35; margin-bottom: 22px; }
     .nav-button { width: 100%; border: 0; color: #d6e8eb; background: transparent; border-radius: 8px; padding: 11px 12px; margin-bottom: 7px; text-align: left; cursor: pointer; }
     .nav-button.active, .nav-button:hover { color: white; background: var(--nav2); }
-    main { padding: 24px; min-width: 0; }
+    main { padding: 28px; min-width: 0; }
     .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; }
-    h1 { margin: 0 0 8px; font-size: 28px; } h2 { margin: 0 0 12px; font-size: 19px; } h3 { margin: 0 0 8px; font-size: 16px; }
+    h1 { margin: 0 0 8px; font-size: 30px; line-height: 1.25; } h2 { margin: 0 0 12px; font-size: 21px; line-height: 1.3; } h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.35; }
     .muted { color: var(--muted); line-height: 1.6; margin: 0; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 10px 13px; font-weight: 700; cursor: pointer; }
@@ -35,8 +35,8 @@
     input, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px; background: white; color: var(--ink); }
     .grid { display: grid; grid-template-columns: 1.35fr .9fr; gap: 16px; align-items: start; } .full { grid-column: 1 / -1; }
     .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; vertical-align: top; }
     th:first-child, td:first-child { text-align: left; } th { color: var(--muted); background: #f8fafb; font-weight: 700; }
     tr.clickable { cursor: pointer; } tr.clickable:hover, tr.selected { background: #eef7f8; }
     .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; padding: 4px 9px; border-radius: 999px; background: var(--teal); color: white; font-size: 12px; font-weight: 700; }
@@ -47,6 +47,12 @@
     .bars { display: grid; gap: 11px; } .bar-row { display: grid; grid-template-columns: 130px 1fr 56px; gap: 10px; align-items: center; }
     .track { height: 10px; border-radius: 999px; background: #e7edf0; overflow: hidden; } .fill { height: 100%; border-radius: inherit; background: var(--cyan); }
     .map { min-height: 300px; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(90deg, rgba(56,111,164,.12) 1px, transparent 1px), linear-gradient(rgba(56,111,164,.12) 1px, transparent 1px), #edf7f8; background-size: 34px 34px; position: relative; overflow: hidden; }
+    .wide-map { height: min(68vh, 620px); min-height: 440px; padding: 0; background: #eaf6f8; }
+    .wide-map svg { width: 100%; height: 100%; display: block; }
+    .map-label { font-size: 12px; fill: #24434b; font-weight: 700; }
+    .map-small { font-size: 11px; fill: #5b7178; }
+    .map-point { cursor: pointer; transition: r .15s ease; }
+    .map-point:hover { r: 6; }
     .coast { position: absolute; left: 40px; top: -26px; width: 150px; height: 360px; background: #d9e8d2; border-right: 4px solid #7ba47d; transform: rotate(10deg); }
     .dot { position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
     .dot.event { left: 47%; top: 55%; background: var(--red); } .dot.source { background: var(--gold); }
@@ -55,7 +61,7 @@
     .vector:after { content: ""; position: absolute; right: -1px; top: -5px; border-left: 11px solid var(--cyan); border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
     .note { background: #fff7e5; border: 1px solid #ecd49b; color: #6f520a; border-radius: 8px; padding: 12px; line-height: 1.6; }
     .source-list, .api-grid { display: grid; gap: 12px; } .api-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .source-card, .api-card { border: 1px solid var(--line); border-radius: 8px; padding: 13px; background: #fbfcfc; line-height: 1.55; }
+    .source-card, .api-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfcfc; line-height: 1.65; }
     .source-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
     .progress { height: 9px; border-radius: 999px; background: #e7edf0; overflow: hidden; margin-top: 10px; } .progress span { display: block; height: 100%; background: var(--teal); }
     .loading { padding: 32px; text-align: center; color: var(--muted); }
@@ -95,7 +101,7 @@
       }), [events, rankings, query, group, confidence]);
       const sourceTypeCounts = useMemo(() => sources.reduce((acc, source) => { acc[source.source_type] = (acc[source.source_type] || 0) + 1; return acc; }, {}), [sources]);
       if (!data) return <div className="loading">正在載入 NODASS 系統資料...</div>;
-      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "模型評估", "NODASS 探測", "資料補齊"];
+      const tabs = ["總覽", "異常事件", "來源追蹤", "時空一致性", "模型評估", "NODASS 探測", "離岸風電水質"];
       return (
         <div className="app">
           <aside>
@@ -104,8 +110,8 @@
           </aside>
           <main>
             <div className="topbar">
-              <div><h1>海岸生態壓力與污染傳輸來源追蹤</h1><p className="muted">React 互動版已載入本次運算資料，可篩選異常事件、查看 72 小時時空窗與候選來源排序。</p></div>
-              <div className="actions"><button className="btn" onClick={() => setActiveTab("資料補齊")}>查看 API 與資料狀態</button><button className="btn" onClick={() => setActiveTab("時空一致性")}>檢視時空規則</button><button className="btn primary" onClick={() => setActiveTab("異常事件")}>瀏覽事件</button></div>
+              <div><h1>海岸生態壓力與污染傳輸來源追蹤</h1><p className="muted">系統已載入水質異常、72 小時事件窗、NODASS API 探測與離岸風電水質摘要，可直接查看來源推估依據。</p></div>
+              <div className="actions"><button className="btn" onClick={() => setActiveTab("NODASS 探測")}>查看 NODASS API</button><button className="btn" onClick={() => setActiveTab("時空一致性")}>檢視時空規則</button><button className="btn primary" onClick={() => setActiveTab("異常事件")}>瀏覽事件</button></div>
             </div>
             <div className="stats">
               <div className="card"><div className="label">異常事件</div><div className="value">{number(events.length)}</div></div>
@@ -116,11 +122,11 @@
             </div>
             {activeTab === "總覽" && <Overview events={events} sourceTypeCounts={sourceTypeCounts} sources={sources} selectedEvent={selectedEvent} setSelectedId={setSelectedId} window={selectedWindow} rankings={selectedRankings} />}
             {activeTab === "異常事件" && <Events events={filteredEvents} selectedEvent={selectedEvent} setSelectedId={setSelectedId} query={query} setQuery={setQuery} group={group} setGroup={setGroup} confidence={confidence} setConfidence={setConfidence} />}
-            {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} />}
+            {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} sources={sources} />}
             {activeTab === "時空一致性" && <Consistency window={selectedWindow} />}
             {activeTab === "模型評估" && <MethodAssessment methods={data.method_evaluation || []} apis={data.nodass_api_requirements || []} />}
             {activeTab === "NODASS 探測" && <NodassProbe probe={data.nodass_api_probe || {}} />}
-            {activeTab === "資料補齊" && <DataNeeds rainfallCount={data.rainfall_station_count} officialCount={data.official_discharge_source_count || 0} externalStatus={data.external_status || {}} apis={data.nodass_api_requirements || []} />}
+            {activeTab === "離岸風電水質" && <OffshoreWindQuality summary={data.offshore_wind_quality || {}} />}
           </main>
         </div>
       );
@@ -148,8 +154,19 @@
       return <div className="summary-grid"><div className="metric"><span className="label">異常測站</span><strong>{event.station_name}</strong></div><div className="metric"><span className="label">污染物</span><strong>{pollutantLabels[event.pollutant_name] || event.pollutant_name}</strong></div><div className="metric"><span className="label">最高候選來源</span><strong>{top?.source_name || "無符合來源"}</strong></div><div className="metric"><span className="label">來源信心</span><strong>{top?.confidence_level || "無資料"}</strong></div><div className="metric"><span className="label">72 小時海氣象資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div><div className="metric"><span className="label">雨量狀態</span><strong>{window?.rain_status || "無資料"}</strong></div></div>;
     }
 
-    function Tracing({ event, rankings, window }) {
-      return <div className="grid"><section><h2>候選來源排序</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="source-list">{rankings.map((row, index) => <div className="source-card" key={`${row.event_id}-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{row.confidence_level}信心</span></div><p className="muted">類型：{sourceTypeLabels[row.source_type] || row.source_type}，距離：{row.distance_km} km，72 小時可達：{row.reachable_within_72h ? "是" : "否"}</p><div className="progress"><span style={{ width: `${Math.min(100, row.source_score * 100)}%` }}></span></div></div>)}</div></section><section><h2>追蹤示意圖</h2><div className="map"><div className="coast"></div><div className="vector" style={{ transform: `rotate(${window?.dominant_current_direction || 240}deg)` }}></div><div className="dot event" title="異常測站"></div><div className="dot source s0" title="候選來源"></div><div className="dot source s1" title="候選來源"></div><div className="dot source s2" title="候選來源"></div></div><div className="note" style={{ marginTop: 12 }}>此圖為來源追蹤示意：實際排序由距離、流向、風向、污染物吻合度與 72 小時可達性共同計算。</div></section></div>;
+    function Tracing({ event, rankings, window, sources }) {
+      return <div className="grid"><section><h2>候選來源排序</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="source-list">{rankings.map((row, index) => <div className="source-card" key={`${row.event_id}-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{row.confidence_level}信心</span></div><p className="muted">類型：{sourceTypeLabels[row.source_type] || row.source_type}，距離：{row.distance_km} km，72 小時可達：{row.reachable_within_72h ? "是" : "否"}</p><div className="progress"><span style={{ width: `${Math.min(100, row.source_score * 100)}%` }}></span></div></div>)}</div></section><section><h2>追蹤判斷</h2><div className="summary-grid"><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">事件窗資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div></div><div className="note" style={{ marginTop: 12 }}>排序前會先套用 72 小時時空一致性，只保留可由上游流向、上風或可達距離支持的候選來源。</div></section><section className="full"><h2>完整地圖</h2><TaiwanMap event={event} rankings={rankings} sources={sources} window={window} /></section></div>;
+    }
+
+    function TaiwanMap({ event, rankings, sources, window }) {
+      const rankedIds = new Set(rankings.map((row) => row.source_id));
+      const points = sources.filter((source) => rankedIds.has(source.source_id) && Number(source.lon) && Number(source.lat));
+      const minLon = 118.0, maxLon = 123.2, minLat = 21.5, maxLat = 26.4;
+      const x = (lon) => ((Number(lon) - minLon) / (maxLon - minLon)) * 100;
+      const y = (lat) => 100 - ((Number(lat) - minLat) / (maxLat - minLat)) * 100;
+      const eventX = event ? x(event.lon) : 50;
+      const eventY = event ? y(event.lat) : 50;
+      return <div className="map wide-map"><svg viewBox="0 0 100 100" role="img" aria-label="台灣周邊污染來源追蹤地圖" preserveAspectRatio="xMidYMid meet"><rect width="100" height="100" fill="#e8f5f7" /><path d="M55 3 C65 11 70 25 67 39 C64 54 61 65 58 81 C56 90 48 96 42 88 C35 78 34 63 36 49 C38 34 42 18 55 3 Z" fill="#d7e8d1" stroke="#789d77" strokeWidth="0.8" /><path d="M0 76 C20 70 35 72 55 80 C72 87 88 86 100 80" fill="none" stroke="#9cc8d0" strokeWidth="0.6" strokeDasharray="1.4 1.4" /><text x="58" y="28" className="map-label">台灣</text><text x="9" y="12" className="map-small">119°E</text><text x="82" y="12" className="map-small">123°E</text><text x="4" y="91" className="map-small">22°N</text><text x="4" y="10" className="map-small">26°N</text>{points.map((point, index) => <g key={point.source_id}><line x1={x(point.lon)} y1={y(point.lat)} x2={eventX} y2={eventY} stroke="#d99a1e" strokeWidth={index === 0 ? 0.8 : 0.35} opacity={index === 0 ? 0.8 : 0.45} /><circle className="map-point" cx={x(point.lon)} cy={y(point.lat)} r={index === 0 ? 2.3 : 1.7} fill="#d99a1e" stroke="#fff" strokeWidth="0.5"><title>{point.source_name}</title></circle></g>)}{event && <g><circle cx={eventX} cy={eventY} r="2.8" fill="#c84c4c" stroke="#fff" strokeWidth="0.8"><title>{event.station_name}</title></circle><text x={Math.min(84, eventX + 2.5)} y={Math.max(6, eventY - 2)} className="map-label">{event.station_name}</text></g>}<g transform={`translate(78 78) rotate(${window?.dominant_current_direction || 0})`}><line x1="0" y1="0" x2="10" y2="0" stroke="#2a9d8f" strokeWidth="1.2" /><path d="M10 0 L7 -2 L7 2 Z" fill="#2a9d8f" /></g><text x="70" y="87" className="map-small">主導流向</text></svg></div>;
     }
 
     function Consistency({ window }) {
@@ -158,7 +175,7 @@
 
     function MethodAssessment({ methods, apis }) {
       const highApis = apis.filter((api) => api.priority === "高");
-      return <div className="grid"><section><h2>論文方法可復現度</h2><div className="source-list">{methods.map((item) => <div className="source-card" key={item.method}><div className="source-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p>{item.reproduced_feature}</p><div className="note">{item.next_step}</div></div>)}</div></section><section><h2>優先申請的 NODASS API</h2><div className="source-list">{highApis.slice(0, 8).map((api) => <div className="api-card" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
+      return <div className="grid"><section><h2>論文方法可復現功能</h2><div className="source-list">{methods.map((item) => <div className="source-card" key={item.method}><div className="source-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p><strong>已放入系統：</strong>{item.reproduced_feature}</p><p><strong>目前支援：</strong>{item.current_support}</p><div className="note">{item.next_step}</div></div>)}</div></section><section><h2>已可操作的模型節點</h2><div className="source-list"><div className="api-card"><h3>事件節點</h3><p className="muted">污染物群組、異常分數、測站、時間、基準值。</p></div><div className="api-card"><h3>傳輸節點</h3><p className="muted">72 小時事件窗、平均流速、主導流向、主導風向、潮差。</p></div><div className="api-card"><h3>來源節點</h3><p className="muted">正式放流口、河口、港區、工業來源、距離與污染物吻合度。</p></div><div className="api-card"><h3>影像節點</h3><p className="muted">NODASS CHL/TSM/SST 影像端點探測，下一版可自動比對事件窗影像。</p></div></div></section><section className="full"><h2>優先接入的 NODASS API</h2><div className="api-grid">{highApis.slice(0, 10).map((api) => <div className="api-card" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
     }
 
     function NodassProbe({ probe }) {
@@ -169,17 +186,11 @@
       return <div className="grid"><section><h2>NODASS API 探測結果</h2><div className="summary-grid"><div className="metric"><span className="label">探測時間</span><strong>{probe.updated_at || "尚未探測"}</strong></div><div className="metric"><span className="label">探測端點</span><strong>{number(probe.total || rows.length)}</strong></div><div className="metric"><span className="label">可讀取</span><strong>{number(probe.readable || readable)}</strong></div><div className="metric"><span className="label">影像/圖磚端點</span><strong>{number(imageRows.length)}</strong></div></div><div className="note" style={{ marginTop: 12 }}>已可用的影像端點會回傳影像 URL、圖例 URL、日期與空間邊界；下一版可依異常事件日期自動抓取 ±72 小時影像清單。</div></section><section><h2>觀測站資料</h2><div className="source-list">{stationRows.map((row) => <div className="api-card" key={`${row.code}-${row.date1}-${row.status}`}><h3>{row.code} · {row.name}</h3><p className="muted">狀態：{row.status}，資料筆數：{number(row.record_count)}</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">開啟 API</a></div>)}</div></section><section className="full"><h2>完整探測清單</h2><div className="table-wrap"><table><thead><tr><th>API</th><th>期間</th><th>狀態</th><th>HTTP</th><th>資料筆數</th><th>回傳欄位</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.url}-${index}`}><td>{row.code}</td><td>{row.date1 ? `${row.date1} ~ ${row.date2}` : "站點資料"}</td><td>{row.status}</td><td>{row.http_status || "無"}</td><td>{number(row.record_count)}</td><td>{(row.sample_keys || []).slice(0, 5).join("、")}</td></tr>)}</tbody></table></div></section></div>;
     }
 
-    function DataNeeds({ rainfallCount, officialCount, externalStatus, apis }) {
-      const status = externalStatus.sources || {};
-      const needs = [
-        ["中央氣象署開放資料授權碼", `已成功接入雨量資料，解析 ${number(rainfallCount)} 站；狀態：${status.cwa_rainfall?.message || "未更新"}`, "https://opendata.cwa.gov.tw/user/authkey"],
-        ["環境部水污染源許可及申報資料", `已成功接入 EMS_S_03，轉入 ${number(officialCount)} 個正式放流口候選來源；狀態：${status.moenv_ems_s_03?.message || "未更新"}`, "https://data.moenv.gov.tw/api/v2/EMS_S_03"],
-        ["水利署 FHY 河川/流域 API Key", `目前尚未接入；狀態：${status.wra_basin?.message || "未設定 WRA_API_KEY"}`, "https://fhy.wra.gov.tw/Api"],
-        ["中央氣象署海象資料會員權限", "需登入後下載更多浮標、潮位與海象資料，補足海流與潮位觀測密度。", "https://ocean.cwa.gov.tw/V2/data_interface/datasets"],
-        ["NODASS 國家海洋資料庫權限", "需登入或申請資料下載/API，取得 HYCOM、ROMS、POM、海流、風場、波浪、葉綠素與 AIS。", "https://nodass.namr.gov.tw/data"],
-        ["歷史污染事件與稽查紀錄", "尚未接入；需自行取得通報、裁罰、赤潮、魚群死亡、漏油或異常排放事件。", "https://statis.moenv.gov.tw/epanet/index.html"]
-      ];
-      return <div className="grid"><section><h2>API 與資料狀態</h2><div className="api-grid">{needs.map(([name, detail, url]) => <div className="api-card" key={name}><h3>{name}</h3><p className="muted">{detail}</p><a className="btn" href={url} target="_blank" rel="noreferrer">開啟資料來源</a></div>)}</div></section><section><h2>NODASS API 名稱清單</h2><div className="table-wrap"><table><thead><tr><th>API 名稱</th><th>代碼</th><th>優先</th><th>用途</th></tr></thead><tbody>{apis.map((api) => <tr key={api.class_code}><td>{api.name}</td><td>{api.class_code}</td><td>{api.priority}</td><td>{api.use_case}</td></tr>)}</tbody></table></div></section></div>;
+    function OffshoreWindQuality({ summary }) {
+      const datasets = summary.datasets || [];
+      const items = summary.top_items || [];
+      const sites = summary.top_sites || [];
+      return <div className="grid"><section><h2>離岸風電海域水質</h2><p className="muted">{summary.message || "尚未匯入資料"}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">資料表</span><strong>{number(summary.dataset_count)}</strong></div><div className="metric"><span className="label">監測紀錄</span><strong>{number(summary.record_count)}</strong></div><div className="metric"><span className="label">採樣地點</span><strong>{number(summary.sampling_site_count)}</strong></div><div className="metric"><span className="label">檢測項目</span><strong>{number(summary.item_count)}</strong></div></div><div className="note" style={{ marginTop: 12 }}>這批資料已作為環境部離岸風電水質 API 無法直接讀取時的離線佐證，可支援水質背景、採樣點分布與檢測項目盤點。</div></section><section><h2>主要檢測項目</h2><div className="bars">{items.map((item) => <div className="bar-row" key={item.name}><span>{item.name}</span><div className="track"><div className="fill" style={{ width: `${Math.max(6, item.count / Math.max(1, items[0]?.count || 1) * 100)}%` }}></div></div><span>{item.count}</span></div>)}</div></section><section><h2>採樣地點</h2><div className="source-list">{sites.map((site) => <div className="api-card" key={site.name}><h3>{site.name || "未命名地點"}</h3><p className="muted">紀錄數：{number(site.count)}</p></div>)}</div></section><section><h2>資料集摘要</h2><div className="table-wrap"><table><thead><tr><th>資料集</th><th>筆數</th><th>主要項目</th><th>主要地點</th></tr></thead><tbody>{datasets.map((item) => <tr key={item.dataset_name}><td>{item.dataset_name}</td><td>{number(item.record_count)}</td><td>{(item.top_items || []).map((row) => row.name).join("、")}</td><td>{(item.top_sites || []).map((row) => row.name).join("、")}</td></tr>)}</tbody></table></div></section></div>;
     }
 
     ReactDOM.createRoot(document.getElementById("root")).render(<App />);

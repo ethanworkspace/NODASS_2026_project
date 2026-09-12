@@ -7276,5 +7276,573 @@
         "sample_keys": []
       }
     ]
+  },
+  "offshore_wind_quality": {
+    "available": true,
+    "message": "已匯入使用者提供的離岸風電海域水質資料",
+    "dataset_count": 23,
+    "record_count": 35235,
+    "sampling_site_count": 485,
+    "item_count": 57,
+    "date_min": "109.07.29",
+    "date_max": "2022/4/11",
+    "top_items": [
+      {
+        "name": "水溫",
+        "count": 1556
+      },
+      {
+        "name": "砷",
+        "count": 1556
+      },
+      {
+        "name": "大腸桿菌群",
+        "count": 1475
+      },
+      {
+        "name": "汞",
+        "count": 1442
+      },
+      {
+        "name": "生化需氧量",
+        "count": 1436
+      },
+      {
+        "name": "溶氧量",
+        "count": 1344
+      },
+      {
+        "name": "鹽度",
+        "count": 1334
+      },
+      {
+        "name": "pH",
+        "count": 1330
+      },
+      {
+        "name": "透明度",
+        "count": 1253
+      },
+      {
+        "name": "懸浮固體",
+        "count": 1220
+      },
+      {
+        "name": "氨氮",
+        "count": 1076
+      },
+      {
+        "name": "正磷酸鹽",
+        "count": 1016
+      }
+    ],
+    "top_sites": [
+      {
+        "name": "彰化縣外海",
+        "count": 1656
+      },
+      {
+        "name": "S10-表層",
+        "count": 241
+      },
+      {
+        "name": "S10-底層",
+        "count": 241
+      },
+      {
+        "name": "潮間帶水質1-表層",
+        "count": 225
+      },
+      {
+        "name": "潮間帶水質1-底層",
+        "count": 225
+      },
+      {
+        "name": "潮間帶水質2-表層",
+        "count": 225
+      },
+      {
+        "name": "潮間帶水質2-底層",
+        "count": 225
+      },
+      {
+        "name": "S1-表層",
+        "count": 163
+      },
+      {
+        "name": "S1-底層",
+        "count": 163
+      },
+      {
+        "name": "S2-表層",
+        "count": 163
+      }
+    ],
+    "datasets": [
+      {
+        "dataset_name": "北能離岸風力發電計畫環境影響說明書",
+        "record_count": 6864,
+        "top_items": [
+          {
+            "name": "pH",
+            "count": 264
+          },
+          {
+            "name": "水溫",
+            "count": 264
+          },
+          {
+            "name": "溶氧量",
+            "count": 264
+          },
+          {
+            "name": "透明度",
+            "count": 264
+          },
+          {
+            "name": "鹽度",
+            "count": 264
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "S1-表層",
+            "count": 78
+          },
+          {
+            "name": "S1-中上層",
+            "count": 78
+          },
+          {
+            "name": "S1-中下層",
+            "count": 78
+          },
+          {
+            "name": "S1-底層",
+            "count": 78
+          },
+          {
+            "name": "S2-表層",
+            "count": 78
+          }
+        ]
+      },
+      {
+        "dataset_name": "加能離岸風力發電計畫環境影響說明書",
+        "record_count": 4992,
+        "top_items": [
+          {
+            "name": "pH",
+            "count": 192
+          },
+          {
+            "name": "水溫",
+            "count": 192
+          },
+          {
+            "name": "溶氧量",
+            "count": 192
+          },
+          {
+            "name": "透明度",
+            "count": 192
+          },
+          {
+            "name": "鹽度",
+            "count": 192
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "S5-表層",
+            "count": 78
+          },
+          {
+            "name": "S5-中上層",
+            "count": 78
+          },
+          {
+            "name": "S5-中下層",
+            "count": 78
+          },
+          {
+            "name": "S5-底層",
+            "count": 78
+          },
+          {
+            "name": "S6-表層",
+            "count": 78
+          }
+        ]
+      },
+      {
+        "dataset_name": "渢利風場背景調查(海域水質_潮間帶水質)",
+        "record_count": 3876,
+        "top_items": [
+          {
+            "name": "水溫",
+            "count": 204
+          },
+          {
+            "name": "pH",
+            "count": 204
+          },
+          {
+            "name": "溶氧量",
+            "count": 204
+          },
+          {
+            "name": "生化需氧量",
+            "count": 204
+          },
+          {
+            "name": "鹽度",
+            "count": 204
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "NW2-11(表層)",
+            "count": 57
+          },
+          {
+            "name": "NW2-11(中上層)",
+            "count": 57
+          },
+          {
+            "name": "NW2-11(中下層)",
+            "count": 57
+          },
+          {
+            "name": "NW2-11(底層)",
+            "count": 57
+          },
+          {
+            "name": "NW2-12(表層)",
+            "count": 57
+          }
+        ]
+      },
+      {
+        "dataset_name": "環洋風場背景調查(海域水質)",
+        "record_count": 3744,
+        "top_items": [
+          {
+            "name": "水溫",
+            "count": 144
+          },
+          {
+            "name": "pH",
+            "count": 144
+          },
+          {
+            "name": "溶氧量",
+            "count": 144
+          },
+          {
+            "name": "鹽度",
+            "count": 144
+          },
+          {
+            "name": "透明度",
+            "count": 144
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "點1_表層",
+            "count": 78
+          },
+          {
+            "name": "點1_中上層",
+            "count": 78
+          },
+          {
+            "name": "點1_中下層",
+            "count": 78
+          },
+          {
+            "name": "點1_底層",
+            "count": 78
+          },
+          {
+            "name": "點2_表層",
+            "count": 78
+          }
+        ]
+      },
+      {
+        "dataset_name": "韋龍離岸風力發電計畫海域水質",
+        "record_count": 3060,
+        "top_items": [
+          {
+            "name": "大腸桿菌群",
+            "count": 108
+          },
+          {
+            "name": "生化需氧量",
+            "count": 108
+          },
+          {
+            "name": "硝酸鹽氮",
+            "count": 108
+          },
+          {
+            "name": "亞硝酸鹽氮",
+            "count": 108
+          },
+          {
+            "name": "正磷酸鹽",
+            "count": 108
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "S1-表層",
+            "count": 85
+          },
+          {
+            "name": "S1-中層",
+            "count": 85
+          },
+          {
+            "name": "S1-底層",
+            "count": 85
+          },
+          {
+            "name": "S2-表層",
+            "count": 85
+          },
+          {
+            "name": "S2-中層",
+            "count": 85
+          }
+        ]
+      },
+      {
+        "dataset_name": "美森離岸風力發電場興建計畫環境影響說明書海域水質調查",
+        "record_count": 2250,
+        "top_items": [
+          {
+            "name": "水溫",
+            "count": 99
+          },
+          {
+            "name": "鹽度",
+            "count": 99
+          },
+          {
+            "name": "透明度",
+            "count": 99
+          },
+          {
+            "name": "大腸桿菌群",
+            "count": 99
+          },
+          {
+            "name": "硝酸鹽",
+            "count": 99
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "海域水質1-表層",
+            "count": 114
+          },
+          {
+            "name": "海域水質1-中層",
+            "count": 114
+          },
+          {
+            "name": "海域水質1-底層",
+            "count": 114
+          },
+          {
+            "name": "海域水質3-表層",
+            "count": 114
+          },
+          {
+            "name": "海域水質3-中層",
+            "count": 114
+          }
+        ]
+      },
+      {
+        "dataset_name": "海域水質",
+        "record_count": 2070,
+        "top_items": [
+          {
+            "name": "水溫",
+            "count": 144
+          },
+          {
+            "name": "pH",
+            "count": 144
+          },
+          {
+            "name": "溶氧量",
+            "count": 144
+          },
+          {
+            "name": "懸浮固體",
+            "count": 144
+          },
+          {
+            "name": "生化需氧量",
+            "count": 144
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "N7-d3",
+            "count": 45
+          },
+          {
+            "name": "N1-d1",
+            "count": 44
+          },
+          {
+            "name": "N1-d2",
+            "count": 44
+          },
+          {
+            "name": "N1-d3",
+            "count": 44
+          },
+          {
+            "name": "N2-d1",
+            "count": 44
+          }
+        ]
+      },
+      {
+        "dataset_name": "彰化渢佑離岸風力發電計畫環境影響說明書海域水質調查",
+        "record_count": 1656,
+        "top_items": [
+          {
+            "name": "水溫",
+            "count": 108
+          },
+          {
+            "name": "pH",
+            "count": 108
+          },
+          {
+            "name": "生化需氧量",
+            "count": 108
+          },
+          {
+            "name": "大腸桿菌群",
+            "count": 108
+          },
+          {
+            "name": "溶氧量",
+            "count": 108
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "海1(表層)",
+            "count": 48
+          },
+          {
+            "name": "海2(表層)",
+            "count": 48
+          },
+          {
+            "name": "海3(表層)",
+            "count": 48
+          },
+          {
+            "name": "海4(表層)",
+            "count": 48
+          },
+          {
+            "name": "海5(表層)",
+            "count": 48
+          }
+        ]
+      },
+      {
+        "dataset_name": "海域水質檢測",
+        "record_count": 1656,
+        "top_items": [
+          {
+            "name": "pH",
+            "count": 72
+          },
+          {
+            "name": "水溫",
+            "count": 72
+          },
+          {
+            "name": "溶氧",
+            "count": 72
+          },
+          {
+            "name": "鹽度",
+            "count": 72
+          },
+          {
+            "name": "透明度",
+            "count": 72
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "彰化縣外海",
+            "count": 1656
+          }
+        ]
+      },
+      {
+        "dataset_name": "海龍二號離岸風力發電計畫環境影響差異分析報告第二次變更海域水質調查",
+        "record_count": 1452,
+        "top_items": [
+          {
+            "name": "溶氧",
+            "count": 66
+          },
+          {
+            "name": "鹽度",
+            "count": 66
+          },
+          {
+            "name": "透明度",
+            "count": 66
+          },
+          {
+            "name": "大腸桿菌群",
+            "count": 66
+          },
+          {
+            "name": "生化需氧量",
+            "count": 66
+          }
+        ],
+        "top_sites": [
+          {
+            "name": "海龍1-表層",
+            "count": 22
+          },
+          {
+            "name": "海龍1-中層",
+            "count": 22
+          },
+          {
+            "name": "海龍1-底層",
+            "count": 22
+          },
+          {
+            "name": "海龍2-表層",
+            "count": 22
+          },
+          {
+            "name": "海龍2-中層",
+            "count": 22
+          }
+        ]
+      }
+    ]
   }
 }
