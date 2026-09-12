@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NODASS 海岸污染來源追蹤 AI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root {
@@ -49,6 +51,16 @@
     .map { min-height: 300px; border: 1px solid var(--line); border-radius: 8px; background: linear-gradient(90deg, rgba(56,111,164,.12) 1px, transparent 1px), linear-gradient(rgba(56,111,164,.12) 1px, transparent 1px), #edf7f8; background-size: 34px 34px; position: relative; overflow: hidden; }
     .wide-map { height: min(68vh, 620px); min-height: 440px; padding: 0; background: #eaf6f8; }
     .wide-map svg { width: 100%; height: 100%; display: block; }
+    .map-shell { display: grid; gap: 10px; }
+    .leaflet-map { height: min(68vh, 620px); min-height: 460px; width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #eaf6f8; }
+    .map-tools { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .map-legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 999px; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+    .legend-dot.event { background: var(--red); }
+    .legend-dot.source { background: var(--gold); }
+    .legend-line { width: 22px; height: 3px; background: var(--cyan); display: inline-block; border-radius: 999px; }
+    .leaflet-control-layers, .leaflet-popup-content { font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; }
     .map-label { font-size: 12px; fill: #24434b; font-weight: 700; }
     .map-small { font-size: 11px; fill: #5b7178; }
     .map-point { cursor: pointer; transition: r .15s ease; }
@@ -71,10 +83,15 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useEffect, useMemo, useState } = React;
+    const { useEffect, useMemo, useRef, useState } = React;
     const pollutantLabels = { suspended_solid: "懸浮固體", chlorophyll_a: "葉綠素 a", ammonia_nitrogen: "氨氮", nitrate_nitrogen: "硝酸鹽氮", orthophosphate: "正磷酸鹽", nitrite_nitrogen: "亞硝酸鹽氮", silicate: "矽酸鹽", zinc: "鋅", copper: "銅", lead: "鉛", cadmium: "鎘", chromium: "鉻", mercury: "汞" };
     const groupLabels = { suspended_solids: "懸浮固體", chlorophyll: "葉綠素", nutrients: "營養鹽", heavy_metals: "重金屬" };
     const sourceTypeLabels = { river: "河川輸入", harbor: "港區活動", industrial: "工業來源", wastewater_treatment: "污水處理", official_discharge: "環境部放流口", coastal_station: "海岸測站" };
+    const mapProvider = {
+      name: "OpenStreetMap",
+      tileUrl: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "&copy; OpenStreetMap contributors"
+    };
     function number(value, digits = 0) { if (value === null || value === undefined || value === "") return "無資料"; return Number(value).toLocaleString("zh-TW", { maximumFractionDigits: digits }); }
     function confidenceClass(level) { if (level === "高") return "badge high"; if (level === "中") return "badge mid"; return "badge low"; }
     function loadSystemData() { return fetch("./data/system_data.json").then((res) => res.ok ? res.json() : Promise.reject()).catch(() => fetch("./system_data.json").then((res) => res.json())); }
@@ -155,7 +172,49 @@
     }
 
     function Tracing({ event, rankings, window, sources }) {
-      return <div className="grid"><section><h2>候選來源排序</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="source-list">{rankings.map((row, index) => <div className="source-card" key={`${row.event_id}-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{row.confidence_level}信心</span></div><p className="muted">類型：{sourceTypeLabels[row.source_type] || row.source_type}，距離：{row.distance_km} km，72 小時可達：{row.reachable_within_72h ? "是" : "否"}</p><div className="progress"><span style={{ width: `${Math.min(100, row.source_score * 100)}%` }}></span></div></div>)}</div></section><section><h2>追蹤判斷</h2><div className="summary-grid"><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">事件窗資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div></div><div className="note" style={{ marginTop: 12 }}>排序前會先套用 72 小時時空一致性，只保留可由上游流向、上風或可達距離支持的候選來源。</div></section><section className="full"><h2>完整地圖</h2><TaiwanMap event={event} rankings={rankings} sources={sources} window={window} /></section></div>;
+      return <div className="grid"><section><h2>候選來源排序</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="source-list">{rankings.map((row, index) => <div className="source-card" key={`${row.event_id}-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{row.confidence_level}信心</span></div><p className="muted">類型：{sourceTypeLabels[row.source_type] || row.source_type}，距離：{row.distance_km} km，72 小時可達：{row.reachable_within_72h ? "是" : "否"}</p><div className="progress"><span style={{ width: `${Math.min(100, row.source_score * 100)}%` }}></span></div></div>)}</div></section><section><h2>追蹤判斷</h2><div className="summary-grid"><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">事件窗資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div></div><div className="note" style={{ marginTop: 12 }}>排序前會先套用 72 小時時空一致性，只保留可由上游流向、上風或可達距離支持的候選來源。</div></section><section className="full"><h2>互動地圖</h2><ConnectedMap event={event} rankings={rankings} sources={sources} window={window} /></section></div>;
+    }
+
+    function ConnectedMap({ event, rankings, sources, window }) {
+      const mapNode = useRef(null);
+      const mapInstance = useRef(null);
+      const rankedIds = new Set(rankings.map((row) => row.source_id));
+      const points = sources.filter((source) => rankedIds.has(source.source_id) && Number(source.lon) && Number(source.lat));
+      const topRows = new Map(rankings.map((row) => [row.source_id, row]));
+      const hasLeaflet = Boolean(globalThis.L);
+      useEffect(() => {
+        if (!mapNode.current || !hasLeaflet || !event) return;
+        const L = globalThis.L;
+        if (mapInstance.current) mapInstance.current.remove();
+        const map = L.map(mapNode.current, { scrollWheelZoom: true, zoomControl: true }).setView([Number(event.lat), Number(event.lon)], 8);
+        mapInstance.current = map;
+        L.tileLayer(mapProvider.tileUrl, { maxZoom: 19, attribution: mapProvider.attribution }).addTo(map);
+        const eventLayer = L.layerGroup().addTo(map);
+        const sourceLayer = L.layerGroup().addTo(map);
+        const routeLayer = L.layerGroup().addTo(map);
+        const bounds = [];
+        const eventLatLng = [Number(event.lat), Number(event.lon)];
+        L.circleMarker(eventLatLng, { radius: 9, color: "#ffffff", weight: 2, fillColor: "#c84c4c", fillOpacity: 0.95 })
+          .bindPopup(`<strong>${event.station_name}</strong><br>事件：${event.event_id}<br>污染物：${pollutantLabels[event.pollutant_name] || event.pollutant_name}<br>異常分數：${number(event.anomaly_score, 2)}`)
+          .addTo(eventLayer);
+        bounds.push(eventLatLng);
+        points.forEach((point, index) => {
+          const row = topRows.get(point.source_id);
+          const latLng = [Number(point.lat), Number(point.lon)];
+          const sourceColor = index === 0 ? "#d99a1e" : "#386fa4";
+          L.polyline([latLng, eventLatLng], { color: "#2a9d8f", weight: index === 0 ? 4 : 2, opacity: index === 0 ? 0.75 : 0.4, dashArray: index === 0 ? null : "5 7" }).addTo(routeLayer);
+          L.circleMarker(latLng, { radius: index === 0 ? 8 : 6, color: "#ffffff", weight: 2, fillColor: sourceColor, fillOpacity: 0.9 })
+            .bindPopup(`<strong>${point.source_name}</strong><br>類型：${sourceTypeLabels[point.source_type] || point.source_type}<br>距離：${number(row?.distance_km, 2)} km<br>信心：${row?.confidence_level || "無資料"}<br>72 小時可達：${row?.reachable_within_72h ? "是" : "否"}`)
+            .addTo(sourceLayer);
+          bounds.push(latLng);
+        });
+        L.control.layers(null, { "異常測站": eventLayer, "候選來源": sourceLayer, "傳輸連線": routeLayer }, { collapsed: false }).addTo(map);
+        if (bounds.length > 1) map.fitBounds(bounds, { padding: [42, 42], maxZoom: 11 });
+        setTimeout(() => map.invalidateSize(), 120);
+        return () => { map.remove(); mapInstance.current = null; };
+      }, [event?.event_id, rankings.map((row) => row.source_id).join("|"), hasLeaflet]);
+      if (!hasLeaflet) return <TaiwanMap event={event} rankings={rankings} sources={sources} window={window} />;
+      return <div className="map-shell"><div className="map-tools"><p className="muted">底圖模組：{mapProvider.name}；可平移、縮放、點選事件與來源查看細節。</p><div className="map-legend"><span className="legend-item"><span className="legend-dot event"></span>異常測站</span><span className="legend-item"><span className="legend-dot source"></span>候選來源</span><span className="legend-item"><span className="legend-line"></span>傳輸連線</span></div></div><div ref={mapNode} className="leaflet-map" aria-label="互動式污染來源追蹤地圖"></div></div>;
     }
 
     function TaiwanMap({ event, rankings, sources, window }) {

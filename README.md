@@ -46,7 +46,15 @@
 
 系統中不再放置「資料補齊」頁；待申請資料會整理在文件中匯報。
 
-### 6. 論文方法復現
+### 6. 可連接互動地圖
+
+- 來源追蹤頁已接入 Leaflet 地圖模組。
+- 預設底圖使用 OpenStreetMap，無需 API key。
+- 地圖會顯示異常測站、候選污染來源與來源至事件測站的傳輸連線。
+- 可平移、縮放、開關圖層，並點選地圖點位查看事件、來源、距離、信心與 72 小時可達性。
+- 若外部 CDN 或底圖暫時無法載入，系統會回到內建台灣周邊示意地圖。
+
+### 7. 論文方法復現
 
 已把文獻中的方法轉成系統可用功能：
 
@@ -102,6 +110,8 @@ NODASS project/
 - React 18
 - ReactDOM 18
 - Babel Standalone
+- Leaflet 1.9.4
+- OpenStreetMap tile service
 
 因此不需要 `npm install`。若未來要改成正式 Vite/Next.js 專案，可再新增 `package.json`、`vite`、`typescript` 與測試工具。
 
@@ -140,6 +150,18 @@ pip install opendrift parcels netCDF4 xarray
 | `WRA_API_KEY` | 水利署 FHY 河川、流域、水位與流量 API | https://fhy.wra.gov.tw/Api |
 
 目前已驗證中央氣象署與環境部 API 可讀取；水利署 FHY 端點需要水利署自己的 API key，不能使用中央氣象署授權碼。
+
+## 地圖模組與可改接 API
+
+目前系統使用 Leaflet + OpenStreetMap，這是免金鑰的公開底圖組合，適合初版展示與研究原型。若後續要做正式營運或需要更穩定的服務等級，可替換 `dashboard/index.html` 內的 `mapProvider` 設定。
+
+| 地圖來源 | 是否需要 API key | 用途 |
+| --- | --- | --- |
+| OpenStreetMap | 否 | 初版互動底圖、縮放、平移與點位呈現 |
+| Mapbox | 是 | 商用底圖、衛星底圖、客製化樣式 |
+| Google Maps Platform | 是 | 商用地圖、地理編碼與高流量服務 |
+| 國土測繪中心圖資服務 | 依服務條款與流量而定 | 台灣官方底圖、地籍/通用電子地圖 |
+| NODASS 影像/圖磚 | 依端點權限而定 | 衛星 CHL、TSM、SST 事件窗影像疊圖 |
 
 ## 常用指令
 
