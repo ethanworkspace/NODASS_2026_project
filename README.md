@@ -41,8 +41,6 @@
 - 來源追蹤
 - 時空一致性
 - 影像佐證
-- 漂流反推
-- 貝氏機率
 - 採樣建議
 - 模型評估
 - NODASS 探測
@@ -56,7 +54,6 @@
 - 預設底圖使用 OpenStreetMap，無需 API key。
 - 地圖會顯示異常測站、候選污染來源與來源至事件測站的傳輸連線。
 - 可平移、縮放、開關圖層，並點選地圖點位查看事件、來源、距離、信心與 72 小時可達性。
-- 地圖會嘗試依事件窗載入 NODASS `GOCI` 與 `OLNT_S3` 圖磚，使用格式為 `AccessURL/{z}/{y}/{x}.jpg`。
 - 若外部 CDN 或底圖暫時無法載入，系統會回到內建台灣周邊示意地圖。
 
 ### 7. 影像佐證
@@ -65,30 +62,16 @@
 - 葉綠素事件優先推薦 `GOCI_CHL`、`OLNT_S3_CHL`、`Sentinel2_CHL`。
 - 懸浮固體與重金屬事件優先推薦 `GOCI_TSS`、`OLNT_S3_TSM`、`Sentinel2_TSM`。
 - 影像查詢時間窗固定為事件日前後 72 小時，符合時空一致性原則。
-- `GOCI` 與 `OLNT_S3` 圖磚已接入來源追蹤地圖的疊圖選單。
-- `GOCI_SSH` 已列入待確認端點，目前測試為 `HTTP 404`。
-- Google Earth Engine 已列為後續 Sentinel-2/3 自動取像與水色處理平台，正式使用需要 Google Cloud 專案與授權。
+- 目前先提供事件窗 API 入口與端點狀態；下一階段可將影像直接疊加到 Leaflet 地圖。
 
-### 8. 72 小時反向漂流
-
-- 使用事件窗平均流速與主導流向，建立反向 72 小時漂流軌跡雛形。
-- 在來源追蹤地圖與「漂流反推」頁顯示反推路徑。
-- 目前是簡化向量模型；正式 OpenDrift/OceanParcels 版本需接入格網海流資料。
-
-### 9. 貝氏來源機率
-
-- 將目前來源分數、污染物吻合、上游流向、上風方向與來源類型轉成後驗機率樣式。
-- 顯示最高後驗來源、候選來源相對機率與先驗權重。
-- 目前是透明可檢核的貝氏雛形；正式 Bayesian Network/MCMC 需歷史事件與排放資料校正。
-
-### 10. 採樣建議
+### 8. 採樣建議
 
 - 依最高順位候選來源與異常測站位置，自動產生下一採樣點。
 - 採樣點包含異常測站複測點，以及來源到事件測站之間的斷面點。
 - 採樣建議頁會列出每個點位的經緯度、目的與判讀理由。
 - 採樣點已可在互動地圖上顯示。
 
-### 11. 論文方法復現
+### 9. 論文方法復現
 
 已把文獻中的方法轉成系統可用功能：
 
@@ -97,8 +80,6 @@
 - 主動式污染源追蹤 Agent：已復現為異常後自動列出來源與下一步資料需求。
 - 衛星葉綠素/懸浮物影像比對：已復現為 NODASS CHL/TSM/SST API 探測與事件窗影像準備。
 - 主動採樣策略：已復現為異常測站複測與候選來源傳輸斷面採樣點推薦。
-- 粒子漂流模型：已復現為 72 小時反向漂流雛形，等待格網海流資料後升級為 OpenDrift/OceanParcels。
-- Bayesian/MCMC 來源反推：已復現為來源後驗機率面板，等待歷史事件與排放量資料後校正。
 
 ## 專案結構
 
@@ -130,7 +111,6 @@ NODASS project/
 | `reports/system_run_summary.json` | 每次執行摘要 |
 | `docs/update_report_2026-09-12.md` | 本次更新匯報 |
 | `docs/feature_upgrade_report_2026-09-12.md` | 推薦功能升級匯報 |
-| `docs/advanced_feature_report_2026-09-13.md` | NODASS 圖磚、漂流反推與貝氏機率升級匯報 |
 
 ## 安裝需求
 
@@ -201,7 +181,6 @@ pip install opendrift parcels netCDF4 xarray
 | Google Maps Platform | 是 | 商用地圖、地理編碼與高流量服務 |
 | 國土測繪中心圖資服務 | 依服務條款與流量而定 | 台灣官方底圖、地籍/通用電子地圖 |
 | NODASS 影像/圖磚 | 依端點權限而定 | 衛星 CHL、TSM、SST 事件窗影像疊圖 |
-| Google Earth Engine | 是 | Sentinel-2/3 自動取像、雲遮遮罩與水色指標處理 |
 
 ## 常用指令
 
@@ -249,7 +228,6 @@ http://127.0.0.1:8787/index.html
 - 可讀取：`OLNT_S3_CHL`、`OLNT_S3_TSM`、`Sentinel2_CHL`、`Sentinel2_TSM`、`GOCI_CHL`、`GOCI_TSS`、`GOCI`、`OLNT_S3`、`SLNT_S3_SST`、`CWA`、`IHMT`、`WRA`、`NAMR`
 - 需確認權限：`EPA/MWQ`，目前回傳 `HTTP 403`
 - 需確認代碼或資料狀態：`GOCI_SSH`，目前回傳 `HTTP 404`
-- 圖磚格式已確認：`GOCI` 與 `OLNT_S3` 回傳的 `AccessURL` 可使用 `AccessURL/{z}/{y}/{x}.jpg` 疊加到 Leaflet。
 
 ## 目前限制
 

@@ -86,15 +86,6 @@
     .priority-list { display: grid; gap: 10px; }
     .priority-card { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: #fbfcfc; }
     .priority-rank { width: 42px; height: 42px; border-radius: 999px; display: grid; place-items: center; background: var(--teal); color: #fff; font-weight: 800; }
-    .layer-panel { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
-    .layer-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
-    .select-inline { width: auto; min-width: 230px; }
-    .probability-bar { display: grid; grid-template-columns: 170px 1fr 70px; gap: 10px; align-items: center; margin-top: 8px; }
-    .probability-track { height: 13px; border-radius: 999px; overflow: hidden; background: #e7edf0; }
-    .probability-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--teal), var(--gold)); }
-    .timeline { display: grid; gap: 10px; }
-    .timeline-row { display: grid; grid-template-columns: 90px 1fr; gap: 12px; align-items: start; }
-    .timeline-hour { font-weight: 800; color: var(--teal); }
     .loading { padding: 32px; text-align: center; color: var(--muted); }
     @media (max-width: 1080px) { .app, .grid, .stats, .api-grid, .api-link-grid, .toolbar, .evidence-grid { grid-template-columns: 1fr; } aside { position: static; height: auto; } .topbar { display: grid; } .actions { justify-content: flex-start; } }
   </style>
@@ -132,45 +123,6 @@
     function nodassUrl(code, start, end) {
       const path = code === "GOCI" || code === "OLNT_S3" ? "tiles" : "images";
       return `https://nodass.namr.gov.tw/noapi/namr/v1/${path}/${code}?date1=${start}&date2=${end}`;
-    }
-    function imageUrl(code, start, end) {
-      return `https://nodass.namr.gov.tw/noapi/namr/v1/images/${code}?date1=${start}&date2=${end}`;
-    }
-    function tileTemplate(accessUrl) {
-      if (!accessUrl) return null;
-      return `${String(accessUrl).replace(/\/?$/, "/")}{z}/{y}/{x}.jpg`;
-    }
-    function destinationPoint(lat, lon, bearingDeg, distanceKm) {
-      const radius = 6371;
-      const brng = bearingDeg * Math.PI / 180;
-      const lat1 = Number(lat) * Math.PI / 180;
-      const lon1 = Number(lon) * Math.PI / 180;
-      const angular = distanceKm / radius;
-      const lat2 = Math.asin(Math.sin(lat1) * Math.cos(angular) + Math.cos(lat1) * Math.sin(angular) * Math.cos(brng));
-      const lon2 = lon1 + Math.atan2(Math.sin(brng) * Math.sin(angular) * Math.cos(lat1), Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2));
-      return { lat: lat2 * 180 / Math.PI, lon: lon2 * 180 / Math.PI };
-    }
-    function reverseDriftTrack(event, window, hours = 72) {
-      if (!event || !window) return [];
-      const speed = Number(window.mean_current_speed || 0);
-      const bearing = (Number(window.dominant_current_direction || 0) + 180) % 360;
-      const points = [];
-      for (let hour = 0; hour <= hours; hour += 12) {
-        const distanceKm = speed * hour * 3.6;
-        const point = destinationPoint(event.lat, event.lon, bearing, distanceKm);
-        points.push({ hour, distanceKm, ...point });
-      }
-      return points;
-    }
-    function bayesianRows(rankings) {
-      const priors = { river: 1.15, official_discharge: 1.1, wastewater_treatment: 1.08, harbor: 1.0, industrial: 1.05, coastal_station: 0.85 };
-      const weighted = rankings.map((row) => {
-        const prior = priors[row.source_type] || 1;
-        const likelihood = Math.max(0.01, Number(row.source_score || 0)) * prior;
-        return { ...row, prior, likelihood };
-      });
-      const total = weighted.reduce((sum, row) => sum + row.likelihood, 0) || 1;
-      return weighted.map((row) => ({ ...row, posterior: row.likelihood / total })).sort((a, b) => b.posterior - a.posterior);
     }
     function makeSamplingPlan(event, rankings, sources) {
       if (!event) return [];
@@ -215,7 +167,7 @@
       const sourceTypeCounts = useMemo(() => sources.reduce((acc, source) => { acc[source.source_type] = (acc[source.source_type] || 0) + 1; return acc; }, {}), [sources]);
       const imageApiCount = (data?.nodass_api_probe?.results || []).filter((row) => row.url?.includes("/images/") || row.url?.includes("/tiles/")).length;
       if (!data) return <div className="loading">正在載入 NODASS 系統資料...</div>;
-      const tabs = ["總覽", "異常事件", "來源追蹤", "影像佐證", "漂流反推", "貝氏機率", "採樣建議", "時空一致性", "模型評估", "NODASS 探測", "離岸風電水質"];
+      const tabs = ["總覽", "異常事件", "來源追蹤", "影像佐證", "採樣建議", "時空一致性", "模型評估", "NODASS 探測", "離岸風電水質"];
       return (
         <div className="app">
           <aside>
@@ -239,8 +191,6 @@
             {activeTab === "異常事件" && <Events events={filteredEvents} selectedEvent={selectedEvent} setSelectedId={setSelectedId} query={query} setQuery={setQuery} group={group} setGroup={setGroup} confidence={confidence} setConfidence={setConfidence} />}
             {activeTab === "來源追蹤" && <Tracing event={selectedEvent} rankings={selectedRankings} window={selectedWindow} sources={sources} />}
             {activeTab === "影像佐證" && <ImageEvidence event={selectedEvent} probe={data.nodass_api_probe || {}} />}
-            {activeTab === "漂流反推" && <ReverseDrift event={selectedEvent} window={selectedWindow} rankings={selectedRankings} sources={sources} />}
-            {activeTab === "貝氏機率" && <BayesianProbability event={selectedEvent} rankings={selectedRankings} />}
             {activeTab === "採樣建議" && <SamplingPlanner event={selectedEvent} rankings={selectedRankings} sources={sources} />}
             {activeTab === "時空一致性" && <Consistency window={selectedWindow} />}
             {activeTab === "模型評估" && <MethodAssessment methods={data.method_evaluation || []} apis={data.nodass_api_requirements || []} />}
@@ -286,50 +236,11 @@
       const period = eventDateWindow(event);
       const probeRows = probe.results || [];
       const availableCodes = new Set(probeRows.filter((row) => row.url?.includes("/images/") || row.url?.includes("/tiles/")).map((row) => row.code));
-      const rows = [...imageCodesForEvent(event), "GOCI_SSH"].filter((code, index, arr) => arr.indexOf(code) === index).map((code) => {
+      const rows = imageCodesForEvent(event).map((code) => {
         const samples = probeRows.filter((row) => row.code === code);
-        return { code, url: code === "GOCI_SSH" ? imageUrl(code, period.start, period.end) : nodassUrl(code, period.start, period.end), sampleCount: samples.reduce((sum, row) => sum + Number(row.record_count || 0), 0), known: availableCodes.has(code), keys: samples[0]?.sample_keys || [] };
+        return { code, url: nodassUrl(code, period.start, period.end), sampleCount: samples.reduce((sum, row) => sum + Number(row.record_count || 0), 0), known: availableCodes.has(code), keys: samples[0]?.sample_keys || [] };
       });
-      return <div className="grid"><section><h2>事件窗影像佐證</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">事件日期</span><strong>{event?.detected_at || "無資料"}</strong></div><div className="metric"><span className="label">影像查詢窗</span><strong>{period.start} ~ {period.end}</strong></div><div className="metric"><span className="label">污染群組</span><strong>{groupLabels[event?.pollutant_group] || event?.pollutant_group || "無資料"}</strong></div><div className="metric"><span className="label">優先影像類型</span><strong>{rows.map((row) => row.code).join("、")}</strong></div></div><div className="note" style={{ marginTop: 12 }}>這裡依事件污染物自動推薦 NODASS 影像端點；GOCI 與 OLNT_S3 圖磚已整合到來源追蹤地圖的疊圖選單。</div></section><section><h2>判讀重點</h2><div className="priority-list"><div className="priority-card"><div className="priority-rank">1</div><div><h3>同日或前後 72 小時</h3><p className="muted">只採用事件窗內影像，避免把不同水文條件混在一起。</p></div></div><div className="priority-card"><div className="priority-rank">2</div><div><h3>測站上游/上風方向</h3><p className="muted">優先查看來源到事件測站之間是否有濁水、葉綠素或水團邊界。</p></div></div><div className="priority-card"><div className="priority-rank">3</div><div><h3>雲遮與缺值</h3><p className="muted">若自然色圖磚雲遮嚴重，該影像不可作為主要來源證據。</p></div></div></div></section><section className="full"><h2>NODASS 影像/API 入口</h2><div className="api-link-grid">{rows.map((row) => <div className="api-card" key={row.code}><div className="source-head"><h3>{row.code}</h3><span className={row.known ? "badge" : "badge low"}>{row.known ? "已探測" : "待確認"}</span></div><p className="muted">探測樣本筆數：{number(row.sampleCount)}；回傳欄位：{row.keys.slice(0, 5).join("、") || (row.code === "GOCI_SSH" ? "目前探測為 404，需確認代碼或資料狀態" : "尚無樣本")}</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">開啟事件窗 API</a></div>)}</div></section><section className="full"><h2>Earth Engine 入口</h2><div className="api-card"><h3>Google Earth Engine API</h3><p className="muted">可作為後續 Sentinel-2/3 自動取像、雲遮遮罩、水色指標與事件窗影像比對的正式處理平台。目前系統先列為待申請/待串接項目，不把金鑰放入前端。</p><a className="btn" href="https://earthengine.googleapis.com" target="_blank" rel="noreferrer">查看 API 入口</a></div></section></div>;
-    }
-
-    function ReverseDrift({ event, window, rankings, sources }) {
-      const track = reverseDriftTrack(event, window);
-      const distance72 = track.at(-1)?.distanceKm || 0;
-      return <div className="grid"><section><h2>72 小時反向漂流</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">反推方向</span><strong>{number((Number(window?.dominant_current_direction || 0) + 180) % 360, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">72 小時距離</span><strong>{number(distance72, 2)} km</strong></div><div className="metric"><span className="label">事件窗資料</span><strong>{number(window?.meteo_rows)} 筆</strong></div></div><div className="note" style={{ marginTop: 12 }}>這是 OpenDrift/OceanParcels 前的簡化雛形：用事件窗平均流速與主導流向反推 72 小時可能來源路徑，正式版需接入格網海流。</div></section><section><h2>軌跡節點</h2><div className="timeline">{track.map((row) => <div className="timeline-row" key={row.hour}><div className="timeline-hour">-{row.hour} 小時</div><div><strong>{number(row.distanceKm, 2)} km</strong><p className="muted">緯度 {number(row.lat, 5)}，經度 {number(row.lon, 5)}</p></div></div>)}</div></section><section className="full"><h2>反推地圖</h2><DriftMap event={event} track={track} rankings={rankings} sources={sources} /></section></div>;
-    }
-
-    function DriftMap({ event, track, rankings, sources }) {
-      const mapNode = useRef(null);
-      const mapInstance = useRef(null);
-      const hasLeaflet = Boolean(globalThis.L);
-      useEffect(() => {
-        if (!mapNode.current || !hasLeaflet || !event || !track.length) return;
-        const L = globalThis.L;
-        if (mapInstance.current) mapInstance.current.remove();
-        const map = L.map(mapNode.current, { scrollWheelZoom: true, zoomControl: true }).setView([Number(event.lat), Number(event.lon)], 8);
-        mapInstance.current = map;
-        L.tileLayer(mapProvider.tileUrl, { maxZoom: 19, attribution: mapProvider.attribution }).addTo(map);
-        const latLngs = track.map((row) => [row.lat, row.lon]);
-        L.polyline(latLngs, { color: "#7b4ab8", weight: 4, opacity: 0.76, dashArray: "8 8" }).addTo(map);
-        track.forEach((row) => L.circleMarker([row.lat, row.lon], { radius: row.hour === 0 ? 8 : 5, color: "#fff", weight: 2, fillColor: row.hour === 0 ? "#c84c4c" : "#7b4ab8", fillOpacity: 0.92 }).bindPopup(`<strong>反推 ${row.hour} 小時</strong><br>${number(row.distanceKm, 2)} km`).addTo(map));
-        const sourceById = new Map(sources.map((source) => [source.source_id, source]));
-        rankings.slice(0, 5).forEach((rank) => {
-          const source = sourceById.get(rank.source_id);
-          if (source && Number(source.lat) && Number(source.lon)) L.circleMarker([Number(source.lat), Number(source.lon)], { radius: 6, color: "#fff", weight: 2, fillColor: "#d99a1e", fillOpacity: 0.9 }).bindPopup(`<strong>${rank.source_name}</strong><br>後選來源，距離 ${number(rank.distance_km, 2)} km`).addTo(map);
-        });
-        map.fitBounds(latLngs, { padding: [42, 42], maxZoom: 10 });
-        setTimeout(() => map.invalidateSize(), 120);
-        return () => { map.remove(); mapInstance.current = null; };
-      }, [event?.event_id, track.map((row) => `${row.lat},${row.lon}`).join("|"), hasLeaflet]);
-      if (!hasLeaflet) return <div className="note">互動地圖模組暫時無法載入，請使用上方軌跡節點。</div>;
-      return <div ref={mapNode} className="leaflet-map" aria-label="72 小時反向漂流地圖"></div>;
-    }
-
-    function BayesianProbability({ event, rankings }) {
-      const rows = bayesianRows(rankings);
-      const top = rows[0];
-      return <div className="grid"><section><h2>貝氏來源機率雛形</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">最高後驗來源</span><strong>{top?.source_name || "無資料"}</strong></div><div className="metric"><span className="label">後驗機率</span><strong>{number((top?.posterior || 0) * 100, 1)}%</strong></div><div className="metric"><span className="label">候選來源數</span><strong>{number(rows.length)}</strong></div><div className="metric"><span className="label">模型狀態</span><strong>規則式先驗 + 正規化似然</strong></div></div><div className="note" style={{ marginTop: 12 }}>此頁把目前來源分數轉為可檢核的後驗機率樣式。正式 Bayesian Network/MCMC 需加入歷史事件、排放量與連續觀測資料校正條件機率。</div></section><section><h2>模型節點</h2><div className="source-list"><div className="api-card"><h3>先驗</h3><p className="muted">來源類型、是否為正式放流口、河口/港區/工業活動。</p></div><div className="api-card"><h3>似然</h3><p className="muted">來源分數、污染物吻合、上游流向、上風方向、72 小時可達。</p></div><div className="api-card"><h3>後驗</h3><p className="muted">候選來源相對機率，用於排序與不確定度溝通。</p></div></div></section><section className="full"><h2>候選來源後驗機率</h2><div className="source-list">{rows.map((row, index) => <div className="source-card" key={`posterior-${row.source_id}`}><div className="source-head"><strong>{index + 1}. {row.source_name}</strong><span className={confidenceClass(row.confidence_level)}>{number(row.posterior * 100, 1)}%</span></div><div className="probability-bar"><span>後驗機率</span><div className="probability-track"><div className="probability-fill" style={{ width: `${Math.max(2, row.posterior * 100)}%` }}></div></div><strong>{number(row.posterior * 100, 1)}%</strong></div><div className="pill-row" style={{ marginTop: 10 }}><span className="pill">先驗權重 {number(row.prior, 2)}</span><span className="pill">來源分數 {number(row.source_score * 100, 1)}%</span><span className="pill">72 小時可達：{row.reachable_within_72h ? "是" : "否"}</span></div></div>)}</div></section></div>;
+      return <div className="grid"><section><h2>事件窗影像佐證</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">事件日期</span><strong>{event?.detected_at || "無資料"}</strong></div><div className="metric"><span className="label">影像查詢窗</span><strong>{period.start} ~ {period.end}</strong></div><div className="metric"><span className="label">污染群組</span><strong>{groupLabels[event?.pollutant_group] || event?.pollutant_group || "無資料"}</strong></div><div className="metric"><span className="label">優先影像類型</span><strong>{rows.map((row) => row.code).join("、")}</strong></div></div><div className="note" style={{ marginTop: 12 }}>這裡依事件污染物自動推薦 NODASS 影像端點；目前先建立可開啟連結與端點狀態，下一版可把影像直接疊到互動地圖。</div></section><section><h2>判讀重點</h2><div className="priority-list"><div className="priority-card"><div className="priority-rank">1</div><div><h3>同日或前後 72 小時</h3><p className="muted">只採用事件窗內影像，避免把不同水文條件混在一起。</p></div></div><div className="priority-card"><div className="priority-rank">2</div><div><h3>測站上游/上風方向</h3><p className="muted">優先查看來源到事件測站之間是否有濁水、葉綠素或水團邊界。</p></div></div><div className="priority-card"><div className="priority-rank">3</div><div><h3>雲遮與缺值</h3><p className="muted">若自然色圖磚雲遮嚴重，該影像不可作為主要來源證據。</p></div></div></div></section><section className="full"><h2>NODASS 影像/API 入口</h2><div className="api-link-grid">{rows.map((row) => <div className="api-card" key={row.code}><div className="source-head"><h3>{row.code}</h3><span className={row.known ? "badge" : "badge low"}>{row.known ? "已探測" : "待確認"}</span></div><p className="muted">探測樣本筆數：{number(row.sampleCount)}；回傳欄位：{row.keys.slice(0, 5).join("、") || "尚無樣本"}</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">開啟事件窗 API</a></div>)}</div></section></div>;
     }
 
     function SamplingPlanner({ event, rankings, sources }) {
@@ -365,29 +276,10 @@
     function ConnectedMap({ event, rankings, sources, window }) {
       const mapNode = useRef(null);
       const mapInstance = useRef(null);
-      const [tileCatalog, setTileCatalog] = useState([]);
-      const [selectedTile, setSelectedTile] = useState("none");
       const rankedIds = new Set(rankings.map((row) => row.source_id));
       const points = sources.filter((source) => rankedIds.has(source.source_id) && Number(source.lon) && Number(source.lat));
       const topRows = new Map(rankings.map((row) => [row.source_id, row]));
       const hasLeaflet = Boolean(globalThis.L);
-      const period = eventDateWindow(event);
-      useEffect(() => {
-        if (!event) return;
-        const endpoints = ["GOCI", "OLNT_S3"].map((code) => ({ code, url: nodassUrl(code, period.start, period.end) }));
-        Promise.all(endpoints.map((item) => fetch(item.url).then((res) => res.ok ? res.json() : []).then((rows) => ({ ...item, rows: Array.isArray(rows) ? rows : [] })).catch(() => ({ ...item, rows: [] }))))
-          .then((items) => {
-            const catalog = items.flatMap((item) => item.rows.slice(0, 3).map((row, index) => ({
-              id: `${item.code}-${row.Id || row.DateTime || index}`,
-              code: item.code,
-              title: row.Title || `${item.code} ${row.DateTime || ""}`,
-              datetime: row.DateTime || "無日期",
-              template: tileTemplate(row.AccessURL)
-            }))).filter((item) => item.template);
-            setTileCatalog(catalog);
-            setSelectedTile(catalog[0]?.id || "none");
-          });
-      }, [event?.event_id]);
       useEffect(() => {
         if (!mapNode.current || !hasLeaflet || !event) return;
         const L = globalThis.L;
@@ -398,9 +290,6 @@
         const eventLayer = L.layerGroup().addTo(map);
         const sourceLayer = L.layerGroup().addTo(map);
         const routeLayer = L.layerGroup().addTo(map);
-        const driftLayer = L.layerGroup().addTo(map);
-        const selected = tileCatalog.find((item) => item.id === selectedTile);
-        if (selected) L.tileLayer(selected.template, { opacity: 0.58, maxZoom: 19, attribution: "NODASS NAMR" }).addTo(map);
         const bounds = [];
         const eventLatLng = [Number(event.lat), Number(event.lon)];
         L.circleMarker(eventLatLng, { radius: 9, color: "#ffffff", weight: 2, fillColor: "#c84c4c", fillOpacity: 0.95 })
@@ -417,20 +306,13 @@
             .addTo(sourceLayer);
           bounds.push(latLng);
         });
-        const drift = reverseDriftTrack(event, window);
-        if (drift.length) {
-          const latLngs = drift.map((row) => [row.lat, row.lon]);
-          L.polyline(latLngs, { color: "#7b4ab8", weight: 4, opacity: 0.72, dashArray: "8 8" }).addTo(driftLayer);
-          drift.forEach((row) => L.circleMarker([row.lat, row.lon], { radius: row.hour === 72 ? 7 : 4, color: "#ffffff", weight: 1.5, fillColor: "#7b4ab8", fillOpacity: 0.9 }).bindPopup(`<strong>反推 ${row.hour} 小時</strong><br>距離事件約 ${number(row.distanceKm, 2)} km`).addTo(driftLayer));
-          latLngs.forEach((latLng) => bounds.push(latLng));
-        }
-        L.control.layers(null, { "異常測站": eventLayer, "候選來源": sourceLayer, "傳輸連線": routeLayer, "72 小時反向漂流": driftLayer }, { collapsed: false }).addTo(map);
+        L.control.layers(null, { "異常測站": eventLayer, "候選來源": sourceLayer, "傳輸連線": routeLayer }, { collapsed: false }).addTo(map);
         if (bounds.length > 1) map.fitBounds(bounds, { padding: [42, 42], maxZoom: 11 });
         setTimeout(() => map.invalidateSize(), 120);
         return () => { map.remove(); mapInstance.current = null; };
-      }, [event?.event_id, rankings.map((row) => row.source_id).join("|"), hasLeaflet, selectedTile, tileCatalog.length]);
+      }, [event?.event_id, rankings.map((row) => row.source_id).join("|"), hasLeaflet]);
       if (!hasLeaflet) return <TaiwanMap event={event} rankings={rankings} sources={sources} window={window} />;
-      return <div className="map-shell"><div className="map-tools"><p className="muted">底圖模組：{mapProvider.name}；可平移、縮放、點選事件與來源查看細節。</p><div className="map-legend"><span className="legend-item"><span className="legend-dot event"></span>異常測站</span><span className="legend-item"><span className="legend-dot source"></span>候選來源</span><span className="legend-item"><span className="legend-line"></span>傳輸連線</span><span className="legend-item"><span className="legend-line" style={{ background: "#7b4ab8" }}></span>反向漂流</span></div></div><div className="layer-panel"><div className="layer-row"><div><strong>NODASS 圖磚疊圖</strong><p className="muted">依目前事件 72 小時窗嘗試抓取 GOCI 與 OLNT_S3 圖磚。</p></div><select className="select-inline" value={selectedTile} onChange={(event) => setSelectedTile(event.target.value)}><option value="none">不疊加衛星圖磚</option>{tileCatalog.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.datetime}</option>)}</select></div></div><div ref={mapNode} className="leaflet-map" aria-label="互動式污染來源追蹤地圖"></div></div>;
+      return <div className="map-shell"><div className="map-tools"><p className="muted">底圖模組：{mapProvider.name}；可平移、縮放、點選事件與來源查看細節。</p><div className="map-legend"><span className="legend-item"><span className="legend-dot event"></span>異常測站</span><span className="legend-item"><span className="legend-dot source"></span>候選來源</span><span className="legend-item"><span className="legend-line"></span>傳輸連線</span></div></div><div ref={mapNode} className="leaflet-map" aria-label="互動式污染來源追蹤地圖"></div></div>;
     }
 
     function TaiwanMap({ event, rankings, sources, window }) {
