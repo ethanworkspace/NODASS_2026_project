@@ -27,11 +27,12 @@ https://github.com/ethanworkspace/NODASS_2026_project
 
 ### 3. 汙染擴散預測
 
-- 依主導流向、主導風向與平均流速建立 72 小時擴散軌跡。
+- 依海流方向、海流速度、風向、風速與波浪 Stokes drift 預留項建立 72 小時擴散軌跡。
 - 軌跡以 12 小時為間距輸出，包含經緯度、方向與距離。
 - 系統會比對沿岸參考點，列出可能受影響區域與風險等級。
 - 地圖加入粒子漂流動畫，以多個粒子呈現汙染水團沿海流移動與橫向擴散。
-- 地圖同時顯示主導海流與主導風向，支援圖層開關。
+- 地圖同時顯示主導海流、海流速度、主導風向與風速來源，支援圖層開關。
+- 模型已預留 Copernicus Marine hourly currents、wind 與 wave/Stokes drift 欄位。
 - 目前模型為初版方向性預測，不等同正式海洋數值模式。
 
 ### 4. 互動式地圖
@@ -157,6 +158,7 @@ pip install opendrift parcels netCDF4 xarray
 | `MOENV_API_KEY` | 環境部水汙染源許可及申報資料 | https://data.moenv.gov.tw/api/v2/EMS_S_03 |
 | `WRA_API_KEY` | 水利署河川、流域、水位與流量 API | https://fhy.wra.gov.tw/Api |
 | `GOOGLE_EARTH_ENGINE_KEY` | 未來接入 Earth Engine 衛星與格網影像 | https://earthengine.googleapis.com |
+| `COPERNICUSMARINE_SERVICE_USERNAME` / `COPERNICUSMARINE_SERVICE_PASSWORD` | Copernicus Marine 海流、波浪、Stokes drift 格網資料 | https://data.marine.copernicus.eu/ |
 
 目前已驗證中央氣象署與環境部 API 可讀取；水利署 FHY 端點需要水利署自己的 API key，不能使用中央氣象署授權碼。
 

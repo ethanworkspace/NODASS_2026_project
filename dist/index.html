@@ -180,25 +180,54 @@
       const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
       return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
     }
-    function blendedDirection(window) {
-      const current = toRad(window?.dominant_current_direction || 0);
-      const wind = toRad(window?.dominant_wind_direction || window?.dominant_current_direction || 0);
-      const x = Math.cos(current) * 0.72 + Math.cos(wind) * 0.28;
-      const y = Math.sin(current) * 0.72 + Math.sin(wind) * 0.28;
-      return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    function vectorFromBearing(direction, speed) {
+      const rad = toRad(direction || 0);
+      return { east: Math.sin(rad) * speed, north: Math.cos(rad) * speed };
+    }
+    function bearingFromVector(vector) {
+      return (toDeg(Math.atan2(vector.east, vector.north)) + 360) % 360;
+    }
+    function metoceanInputs(window) {
+      const rawCurrentSpeed = Number(window?.mean_current_speed);
+      const currentSpeed = Number.isFinite(rawCurrentSpeed) ? Math.min(Math.max(rawCurrentSpeed, 0.02), 1.5) : 0.08;
+      const rawWindSpeed = Number(window?.mean_wind_speed ?? window?.wind_speed ?? window?.avg_wind_speed);
+      const windSpeed = Number.isFinite(rawWindSpeed) ? Math.max(rawWindSpeed, 0) : 6;
+      return {
+        currentDirection: Number(window?.dominant_current_direction ?? window?.dominant_wind_direction ?? 0),
+        currentSpeed,
+        windDirection: Number(window?.dominant_wind_direction ?? window?.dominant_current_direction ?? 0),
+        windSpeed,
+        windSpeedSource: Number.isFinite(rawWindSpeed) ? "事件窗實測/格網風速" : "待接入，展示預設",
+        stokesSpeed: Number(window?.stokes_drift_speed || 0.015),
+        stokesDirection: Number(window?.wave_direction ?? window?.dominant_current_direction ?? 0)
+      };
+    }
+    function combinedDrift(window) {
+      const input = metoceanInputs(window);
+      const current = vectorFromBearing(input.currentDirection, input.currentSpeed);
+      const wind = vectorFromBearing(input.windDirection, input.windSpeed * 0.03);
+      const stokes = vectorFromBearing(input.stokesDirection, input.stokesSpeed);
+      const vector = {
+        east: current.east + wind.east + stokes.east,
+        north: current.north + wind.north + stokes.north
+      };
+      const speed = Math.sqrt(vector.east ** 2 + vector.north ** 2);
+      return { ...input, driftDirection: bearingFromVector(vector), driftSpeed: speed, vector };
     }
     function forecastTrack(event, window, hours = 72) {
       if (!event) return [];
-      const speed = Math.max(0.02, Number(window?.mean_current_speed || 0.08));
-      const direction = blendedDirection(window);
+      const drift = combinedDrift(window);
+      const speed = drift.driftSpeed;
+      const direction = drift.driftDirection;
       return [0, 12, 24, 36, 48, 60, 72].filter((hour) => hour <= hours).map((hour) => {
         const distance = speed * hour * 3.6;
-        return { hour, distance_km: distance, direction, ...destinationPoint(event.lat, event.lon, direction, distance) };
+        return { hour, distance_km: distance, direction, current_speed: drift.currentSpeed, wind_speed: drift.windSpeed, wind_speed_source: drift.windSpeedSource, ...destinationPoint(event.lat, event.lon, direction, distance) };
       });
     }
     function particlePosition(event, window, phase, seed) {
-      const speed = Math.max(0.02, Number(window?.mean_current_speed || 0.08));
-      const direction = blendedDirection(window);
+      const drift = combinedDrift(window);
+      const speed = drift.driftSpeed;
+      const direction = drift.driftDirection;
       const offsetSide = seed % 2 === 0 ? 1 : -1;
       const lateralKm = (0.35 + (seed % 7) * 0.26) * offsetSide * Math.sin(phase * Math.PI);
       const hours = phase * 72;
@@ -285,7 +314,7 @@
         const matchGroup = group === "全部" || event.pollutant_group === group;
         return matchQuery && matchGroup;
       }), [events, query, group]);
-      const tabs = ["監測總覽", "汙染事件", "擴散預測", "影像與資料", "應變建議", "系統說明"];
+      const tabs = ["監測總覽", "汙染事件", "擴散預測", "影像與資料", "應變建議", "汙染影響"];
       if (!data) return <div className="loading">正在載入台灣海岸汙染監測資料...</div>;
       const highEvents = events.filter((event) => Number(event.anomaly_score) >= 100).length;
       const imageApiCount = (data?.nodass_api_probe?.results || []).filter((row) => row.url?.includes("/images/") || row.url?.includes("/tiles/")).length;
@@ -311,7 +340,7 @@
           {activeTab === "擴散預測" && <Diffusion event={selectedEvent} window={selectedWindow} track={track} particles={particles} impacts={impacts} modules={modules} />}
           {activeTab === "影像與資料" && <Evidence event={selectedEvent} probe={data.nodass_api_probe || {}} />}
           {activeTab === "應變建議" && <ResponsePlan event={selectedEvent} window={selectedWindow} track={track} particles={particles} impacts={impacts} modules={modules} />}
-          {activeTab === "系統說明" && <SystemNotes data={data} />}
+          {activeTab === "汙染影響" && <ImpactPage event={selectedEvent} window={selectedWindow} impacts={impacts} modules={modules} data={data} />}
         </main>
       </div>;
     }
@@ -338,8 +367,9 @@
     function Diffusion({ event, window, track, particles, impacts, modules }) {
       const last = track[track.length - 1];
       const direction = track[1]?.direction;
+      const drift = combinedDrift(window);
       return <div className="grid">
-        <section><h2>汙染會擴散到哪裡</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">預測方向</span><strong>{number(direction, 1)}°</strong></div><div className="metric"><span className="label">72 小時距離</span><strong>{number(last?.distance_km, 1)} km</strong></div><div className="metric"><span className="label">主導海流</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div></div><div className="particle-readout"><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">漂流粒子</span><strong>{number(particles.length)} 顆</strong></div><div className="metric"><span className="label">事件窗</span><strong>前後 72 小時</strong></div></div><div className="note" style={{ marginTop: 12 }}>地圖上的粒子會沿預測軌跡移動，並加入橫向展寬，呈現汙染水團可能漂流與擴散的視覺化結果。此初版仍是方向性模型，正式預報需再接入格網海流。</div></section>
+        <section><h2>汙染會擴散到哪裡</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">綜合漂流方向</span><strong>{number(direction, 1)}°</strong></div><div className="metric"><span className="label">72 小時距離</span><strong>{number(last?.distance_km, 1)} km</strong></div><div className="metric"><span className="label">海流方向 / 流速</span><strong>{number(drift.currentDirection, 1)}° / {number(drift.currentSpeed, 3)} m/s</strong></div><div className="metric"><span className="label">風向 / 風速</span><strong>{number(drift.windDirection, 1)}° / {number(drift.windSpeed, 1)} m/s</strong></div></div><div className="particle-readout"><div className="metric"><span className="label">風速來源</span><strong>{drift.windSpeedSource}</strong></div><div className="metric"><span className="label">漂流粒子</span><strong>{number(particles.length)} 顆</strong></div><div className="metric"><span className="label">事件窗</span><strong>前後 72 小時</strong></div></div><div className="note" style={{ marginTop: 12 }}>軌跡以海流 u/v、風場 leeway 與 Stokes drift 預留項合成。現在可用現有事件窗資料展示；接入 Copernicus Marine hourly currents、wind、wave/Stokes drift 後即可替換為格網資料驅動的粒子追蹤。</div></section>
         <section><h2>可能受影響區域</h2><ImpactList impacts={impacts} /></section>
         <section className="full"><h2>粒子漂流、海流與風向地圖</h2><PollutionMap event={event} track={track} particles={particles} impacts={impacts} window={window} /></section>
         <section className="full"><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section>
@@ -431,10 +461,11 @@
       return <div className="grid"><section><h2>應變優先順序</h2><div className="list"><div className="item"><div className="item-head"><strong>1. 異常測站複測</strong><span className="badge high">必要</span></div><p className="muted">先回到 {event?.station_name || "事件測站"} 確認汙染是否仍存在，並同步量測溫度、鹽度、濁度、DO、pH、導電度、流速與流向。</p></div><div className="item"><div className="item-head"><strong>2. 擴散方向斷面</strong><span className="badge mid">優先</span></div><p className="muted">沿 72 小時預測軌跡與粒子高密度區布設採樣點，確認汙染水團是否依順流方向移動。</p></div><div className="item"><div className="item-head"><strong>3. 受影響區域巡查</strong><span className="badge low">追蹤</span></div><p className="muted">優先巡查高風險沿岸參考點，必要時擴大到中風險區域。</p></div></div></section><section><h2>優先巡查點</h2><ImpactList impacts={topImpacts} /></section><section className="full"><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section><section className="full"><h2>採樣地圖</h2><PollutionMap event={event} track={track} particles={particles} impacts={topImpacts} window={window} /></section></div>;
     }
 
-    function SystemNotes({ data }) {
+    function ImpactPage({ event, window, impacts, modules, data }) {
       const methods = data.method_evaluation || [];
       const apis = data.nodass_api_requirements || [];
-      return <div className="grid"><section><h2>系統架構</h2><div className="workflow"><div className="step"><strong>資料層</strong><p className="muted">水質、海氣象、雨量、NODASS 影像與沿岸參考點。</p></div><div className="step"><strong>監測層</strong><p className="muted">汙染物異常偵測與事件建立。</p></div><div className="step"><strong>預測層</strong><p className="muted">72 小時順流擴散軌跡與受影響區域。</p></div><div className="step"><strong>決策層</strong><p className="muted">採樣、巡查與資料需求清單。</p></div></div></section><section><h2>仍需申請/確認</h2><div className="list"><div className="item"><strong>水利署 FHY API</strong><p className="muted">河川流量、水位與流域資料。</p></div><div className="item"><strong>NODASS 正式 API 權限</strong><p className="muted">海洋觀測站、影像與圖磚正式存取。</p></div><div className="item"><strong>Google Earth Engine</strong><p className="muted">衛星長期時序、雲遮處理與格網影像分析。</p></div></div></section><section className="full"><h2>論文可復現功能</h2><div className="api-grid">{methods.map((item) => <div className="item" key={item.method}><div className="item-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p><strong>系統對應：</strong>{item.reproduced_feature}</p><p><strong>目前支援：</strong>{item.current_support}</p></div>)}</div></section><section className="full"><h2>API 優先清單</h2><div className="api-grid">{apis.filter((api) => api.priority === "高").slice(0, 8).map((api) => <div className="item" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
+      const drift = combinedDrift(window);
+      return <div className="grid"><section><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section><section><h2>目前風險受體</h2><ImpactList impacts={impacts.slice(0, 6)} /></section><section className="full"><h2>擴散模型輸入</h2><div className="workflow"><div className="step"><strong>海流</strong><p className="muted">方向 {number(drift.currentDirection, 1)}°，流速 {number(drift.currentSpeed, 3)} m/s。</p></div><div className="step"><strong>風場</strong><p className="muted">方向 {number(drift.windDirection, 1)}°，風速 {number(drift.windSpeed, 1)} m/s；{drift.windSpeedSource}。</p></div><div className="step"><strong>波浪漂移</strong><p className="muted">已預留 Stokes drift 欄位，可接 Copernicus wave 產品。</p></div><div className="step"><strong>事件窗</strong><p className="muted">只使用事件日前後 72 小時資料。</p></div></div></section><section className="full"><h2>建議接入的海洋資料服務</h2><div className="api-grid"><div className="item"><h3>Copernicus Marine 海洋物理預報</h3><p className="muted">用於 hourly sea water velocity，提供每個粒子所在位置與時間的 u/v 海流。</p><a className="btn" href="https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_PHY_001_024/description" target="_blank" rel="noreferrer">查看資料</a></div><div className="item"><h3>Copernicus Marine 全球波浪預報</h3><p className="muted">用於風浪方向、週期與 Stokes drift，強化表層污染漂移。</p><a className="btn" href="https://data.marine.copernicus.eu/product/GLOBAL_ANALYSISFORECAST_WAV_001_027/description" target="_blank" rel="noreferrer">查看資料</a></div><div className="item"><h3>中央氣象署風場/海象</h3><p className="muted">用於台灣周邊風向、風速、潮位與海象觀測。</p><a className="btn" href="https://opendata.cwa.gov.tw/" target="_blank" rel="noreferrer">查看資料</a></div><div className="item"><h3>NODASS 影像與觀測</h3><p className="muted">用於 CHL、TSM、SST、觀測站資料與污染事件影像佐證。</p><a className="btn" href="https://nodass.namr.gov.tw/data" target="_blank" rel="noreferrer">查看資料</a></div></div></section><section className="full"><h2>論文可復現功能</h2><div className="api-grid">{methods.map((item) => <div className="item" key={item.method}><div className="item-head"><strong>{item.method}</strong><span className="badge">{item.score}</span></div><p className="muted">依據：{item.reference}</p><div className="progress"><span style={{ width: `${item.score}%` }}></span></div><p><strong>系統對應：</strong>{item.reproduced_feature}</p><p><strong>目前支援：</strong>{item.current_support}</p></div>)}</div></section><section className="full"><h2>API 優先清單</h2><div className="api-grid">{apis.filter((api) => api.priority === "高").slice(0, 8).map((api) => <div className="item" key={api.class_code}><h3>{api.class_code} · {api.name}</h3><p className="muted">{api.use_case}</p><a className="btn" href={api.endpoint} target="_blank" rel="noreferrer">查看 API</a></div>)}</div></section></div>;
     }
 
     ReactDOM.createRoot(document.getElementById("root")).render(<App />);
