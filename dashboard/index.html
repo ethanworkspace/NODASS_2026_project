@@ -92,13 +92,21 @@
     .legend-dot { width: 12px; height: 12px; border-radius: 999px; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
     .legend-dot.event { background: var(--red); }
     .legend-dot.impact { background: var(--blue); }
+    .legend-dot.particle { background: var(--aqua); }
     .legend-line { width: 24px; height: 3px; background: var(--red); display: inline-block; border-radius: 999px; }
+    .legend-line.current { background: var(--aqua); }
+    .legend-line.wind { background: var(--amber); }
     .fallback-map { height: min(70vh, 640px); min-height: 500px; border: 1px solid var(--line); border-radius: 8px; background: #e8f5f7; }
     .fallback-map svg { display: block; width: 100%; height: 100%; }
     .map-label { font-size: 12px; fill: #24434b; font-weight: 800; }
     .map-small { font-size: 11px; fill: #5b7178; }
     .forecast-list { display: grid; gap: 10px; }
     .forecast-row { display: grid; grid-template-columns: 92px 1fr 112px; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fbfcfc; }
+    .impact-module-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .impact-module { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfcfc; }
+    .impact-module strong { display: block; margin-bottom: 7px; }
+    .particle-readout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .particle-readout .metric strong { font-size: 16px; }
     .workflow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .step { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfcfc; }
     .step strong { display: block; color: var(--teal); margin-bottom: 6px; }
@@ -106,7 +114,7 @@
     .loading { padding: 32px; color: var(--muted); text-align: center; }
     .leaflet-control-layers, .leaflet-popup-content { font-family: "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif; }
     @media (max-width: 1100px) {
-      .app, .grid, .stats, .toolbar, .workflow, .api-grid { grid-template-columns: 1fr; }
+      .app, .grid, .stats, .toolbar, .workflow, .api-grid, .impact-module-grid, .particle-readout { grid-template-columns: 1fr; }
       aside { position: static; height: auto; }
       .topbar { grid-template-columns: 1fr; }
       .actions { justify-content: flex-start; }
@@ -188,6 +196,38 @@
         return { hour, distance_km: distance, direction, ...destinationPoint(event.lat, event.lon, direction, distance) };
       });
     }
+    function particlePosition(event, window, phase, seed) {
+      const speed = Math.max(0.02, Number(window?.mean_current_speed || 0.08));
+      const direction = blendedDirection(window);
+      const offsetSide = seed % 2 === 0 ? 1 : -1;
+      const lateralKm = (0.35 + (seed % 7) * 0.26) * offsetSide * Math.sin(phase * Math.PI);
+      const hours = phase * 72;
+      const alongKm = speed * hours * 3.6 * (0.88 + (seed % 5) * 0.035);
+      const center = destinationPoint(event.lat, event.lon, direction, alongKm);
+      const spreadBearing = (direction + 90) % 360;
+      return destinationPoint(center.lat, center.lon, spreadBearing, lateralKm);
+    }
+    function makeParticles(event, window, count = 44) {
+      if (!event) return [];
+      return Array.from({ length: count }, (_, index) => {
+        const phase = ((index * 0.071) % 1);
+        return { id: `p-${index}`, phase, ...particlePosition(event, window, phase, index) };
+      });
+    }
+    function impactModules(event, impacts) {
+      const high = impacts.filter((point) => point.impact_level === "高").length;
+      const mid = impacts.filter((point) => point.impact_level === "中").length;
+      const group = event?.pollutant_group;
+      const pollutant = pollutantLabels[event?.pollutant_name] || event?.pollutant_name || "未知污染物";
+      const ecological = group === "chlorophyll" || group === "nutrients" ? "藻華、溶氧下降與底棲生物壓力升高" : group === "heavy_metals" ? "底泥與食物鏈累積風險升高" : "濁度升高、光照下降與棲地覆蓋風險";
+      return [
+        { name: "生態影響", level: high ? "高" : mid ? "中" : "低", detail: `${pollutant} 異常可能造成${ecological}。` },
+        { name: "漁業與養殖", level: high >= 2 ? "高" : impacts.length ? "中" : "低", detail: "可能影響沿岸養殖取水、水產品安全檢測與漁場作業安排。" },
+        { name: "遊憩與海岸使用", level: impacts.some((point) => point.source_type === "harbor") ? "中" : "低", detail: "若擴散靠近港區、沙灘或遊憩海域，需加強告示與現場巡查。" },
+        { name: "取排水設施", level: impacts.some((point) => point.source_type === "official_discharge" || point.source_type === "industrial") ? "高" : "中", detail: "需比對放流口、工業區與取水點，確認是否有回流或二次擾動。" },
+        { name: "監測行動", level: high ? "高" : "中", detail: "優先在事件點、漂流軌跡中段、72 小時預測端點與高風險區域布設採樣。" }
+      ];
+    }
     function impactLevel(distance) {
       if (distance <= 8) return "高";
       if (distance <= 18) return "中";
@@ -236,7 +276,9 @@
       const selectedEvent = events.find((event) => event.event_id === selectedId) || events[0];
       const selectedWindow = windows.find((row) => row.event_id === selectedEvent?.event_id);
       const track = useMemo(() => forecastTrack(selectedEvent, selectedWindow), [selectedEvent?.event_id, selectedWindow?.dominant_current_direction, selectedWindow?.dominant_wind_direction, selectedWindow?.mean_current_speed]);
+      const particles = useMemo(() => makeParticles(selectedEvent, selectedWindow), [selectedEvent?.event_id, selectedWindow?.dominant_current_direction, selectedWindow?.dominant_wind_direction, selectedWindow?.mean_current_speed]);
       const impacts = useMemo(() => impactedAreas(track, points), [track.map((p) => `${p.lat},${p.lon}`).join("|"), points.length]);
+      const modules = useMemo(() => impactModules(selectedEvent, impacts), [selectedEvent?.event_id, impacts.map((point) => `${point.source_id}:${point.impact_level}`).join("|")]);
       const filteredEvents = useMemo(() => events.filter((event) => {
         const text = `${event.event_id} ${event.station_name} ${event.pollutant_name}`.toLowerCase();
         const matchQuery = !query || text.includes(query.toLowerCase());
@@ -264,22 +306,23 @@
             <div className="card"><div className="label">影像/API</div><div className="value">{number(imageApiCount)}</div></div>
             <div className="card"><div className="label">目前事件窗</div><div className="value">72h</div></div>
           </div>
-          {activeTab === "監測總覽" && <Overview events={events} event={selectedEvent} window={selectedWindow} impacts={impacts} track={track} setSelectedId={setSelectedId} />}
+          {activeTab === "監測總覽" && <Overview events={events} event={selectedEvent} window={selectedWindow} impacts={impacts} track={track} particles={particles} modules={modules} setSelectedId={setSelectedId} />}
           {activeTab === "汙染事件" && <Events events={filteredEvents} selectedEvent={selectedEvent} setSelectedId={setSelectedId} query={query} setQuery={setQuery} group={group} setGroup={setGroup} />}
-          {activeTab === "擴散預測" && <Diffusion event={selectedEvent} window={selectedWindow} track={track} impacts={impacts} />}
+          {activeTab === "擴散預測" && <Diffusion event={selectedEvent} window={selectedWindow} track={track} particles={particles} impacts={impacts} modules={modules} />}
           {activeTab === "影像與資料" && <Evidence event={selectedEvent} probe={data.nodass_api_probe || {}} />}
-          {activeTab === "應變建議" && <ResponsePlan event={selectedEvent} window={selectedWindow} track={track} impacts={impacts} />}
+          {activeTab === "應變建議" && <ResponsePlan event={selectedEvent} window={selectedWindow} track={track} particles={particles} impacts={impacts} modules={modules} />}
           {activeTab === "系統說明" && <SystemNotes data={data} />}
         </main>
       </div>;
     }
 
-    function Overview({ events, event, window, impacts, track, setSelectedId }) {
+    function Overview({ events, event, window, impacts, track, particles, modules, setSelectedId }) {
       const last = track[track.length - 1];
       return <div className="grid">
         <section><h2>目前汙染判定</h2><div className="summary-grid"><div className="metric"><span className="label">選取事件</span><strong>{event?.event_id || "無資料"}</strong></div><div className="metric"><span className="label">測站</span><strong>{event?.station_name || "無資料"}</strong></div><div className="metric"><span className="label">汙染物</span><strong>{pollutantLabels[event?.pollutant_name] || event?.pollutant_name || "無資料"}</strong></div><div className="metric"><span className="label">汙染狀態</span><strong>{pollutionLevel(event?.anomaly_score || 0)}</strong></div><div className="metric"><span className="label">72 小時擴散距離</span><strong>{number(last?.distance_km, 1)} km</strong></div><div className="metric"><span className="label">可能受影響區域</span><strong>{number(impacts.length)}</strong></div></div></section>
         <section><h2>監測流程</h2><div className="workflow"><div className="step"><strong>1. 偵測</strong><p className="muted">比對基準值與異常分數。</p></div><div className="step"><strong>2. 鎖定</strong><p className="muted">建立事件前後 72 小時窗。</p></div><div className="step"><strong>3. 預測</strong><p className="muted">依流向、風向與流速估算軌跡。</p></div><div className="step"><strong>4. 應變</strong><p className="muted">列出關注區域與採樣建議。</p></div></div></section>
-        <section className="full"><h2>台灣海岸汙染擴散地圖</h2><PollutionMap event={event} track={track} impacts={impacts} window={window} /></section>
+        <section className="full"><h2>台灣海岸汙染擴散地圖</h2><PollutionMap event={event} track={track} particles={particles} impacts={impacts} window={window} /></section>
+        <section className="full"><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section>
         <section className="full"><h2>高風險汙染事件</h2><EventTable events={events.slice(0, 8)} selectedEvent={event} setSelectedId={setSelectedId} /></section>
       </div>;
     }
@@ -292,13 +335,14 @@
       return <section><h2>汙染事件清單</h2><div className="toolbar"><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋事件、測站或汙染物" /><select value={group} onChange={(event) => setGroup(event.target.value)}><option>全部</option>{Object.keys(groupLabels).map((key) => <option value={key} key={key}>{groupLabels[key]}</option>)}</select><select value={pollutionLevel(selectedEvent?.anomaly_score || 0)} disabled><option>{pollutionLevel(selectedEvent?.anomaly_score || 0)}</option></select></div><EventTable events={events} selectedEvent={selectedEvent} setSelectedId={setSelectedId} /></section>;
     }
 
-    function Diffusion({ event, window, track, impacts }) {
+    function Diffusion({ event, window, track, particles, impacts, modules }) {
       const last = track[track.length - 1];
       const direction = track[1]?.direction;
       return <div className="grid">
-        <section><h2>汙染會擴散到哪裡</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">預測方向</span><strong>{number(direction, 1)}°</strong></div><div className="metric"><span className="label">72 小時距離</span><strong>{number(last?.distance_km, 1)} km</strong></div><div className="metric"><span className="label">主導流向</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div></div><div className="note" style={{ marginTop: 12 }}>此頁只使用事件日前後 72 小時內的海氣象資料。預測方向以主導流向為主，風向為輔，輸出汙染水團可能抵達的海域與沿岸關注點。</div></section>
+        <section><h2>汙染會擴散到哪裡</h2><p className="muted">目前事件：{event?.event_id}，{event?.station_name}</p><div className="summary-grid" style={{ marginTop: 12 }}><div className="metric"><span className="label">預測方向</span><strong>{number(direction, 1)}°</strong></div><div className="metric"><span className="label">72 小時距離</span><strong>{number(last?.distance_km, 1)} km</strong></div><div className="metric"><span className="label">主導海流</span><strong>{number(window?.dominant_current_direction, 1)}°</strong></div><div className="metric"><span className="label">主導風向</span><strong>{number(window?.dominant_wind_direction, 1)}°</strong></div></div><div className="particle-readout"><div className="metric"><span className="label">平均流速</span><strong>{number(window?.mean_current_speed, 3)} m/s</strong></div><div className="metric"><span className="label">漂流粒子</span><strong>{number(particles.length)} 顆</strong></div><div className="metric"><span className="label">事件窗</span><strong>前後 72 小時</strong></div></div><div className="note" style={{ marginTop: 12 }}>地圖上的粒子會沿預測軌跡移動，並加入橫向展寬，呈現汙染水團可能漂流與擴散的視覺化結果。此初版仍是方向性模型，正式預報需再接入格網海流。</div></section>
         <section><h2>可能受影響區域</h2><ImpactList impacts={impacts} /></section>
-        <section className="full"><h2>72 小時擴散地圖</h2><PollutionMap event={event} track={track} impacts={impacts} window={window} /></section>
+        <section className="full"><h2>粒子漂流、海流與風向地圖</h2><PollutionMap event={event} track={track} particles={particles} impacts={impacts} window={window} /></section>
+        <section className="full"><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section>
         <section><h2>時間序列軌跡</h2><div className="forecast-list">{track.map((point) => <div className="forecast-row" key={point.hour}><strong>+{point.hour} 小時</strong><span className="muted">緯度 {number(point.lat, 5)}，經度 {number(point.lon, 5)}</span><span>{number(point.distance_km, 1)} km</span></div>)}</div></section>
         <section><h2>時空一致性</h2><div className="summary-grid"><div className="metric"><span className="label">事件窗開始</span><strong>{window?.window_start || "無資料"}</strong></div><div className="metric"><span className="label">事件窗結束</span><strong>{window?.window_end || "無資料"}</strong></div><div className="metric"><span className="label">資料筆數</span><strong>{number(window?.meteo_rows)}</strong></div><div className="metric"><span className="label">潮差</span><strong>{number(window?.tide_range, 3)} m</strong></div></div></section>
       </div>;
@@ -309,7 +353,11 @@
       return <div className="list">{impacts.map((point, index) => <div className="item" key={point.source_id}><div className="item-head"><strong>{index + 1}. {point.source_name}</strong><span className={badgeClass(point.impact_level)}>{point.impact_level}</span></div><p className="muted">類型：{pointTypeLabels[point.source_type] || point.source_type}；距離預測軌跡最近約 {number(point.nearest_track_km, 1)} km。</p></div>)}</div>;
     }
 
-    function PollutionMap({ event, track, impacts, window }) {
+    function ImpactModules({ modules }) {
+      return <div className="impact-module-grid">{modules.map((module) => <div className="impact-module" key={module.name}><div className="item-head"><strong>{module.name}</strong><span className={badgeClass(module.level)}>{module.level}</span></div><p className="muted">{module.detail}</p></div>)}</div>;
+    }
+
+    function PollutionMap({ event, track, particles, impacts, window }) {
       const mapNode = useRef(null);
       const mapInstance = useRef(null);
       const hasLeaflet = Boolean(globalThis.L);
@@ -322,6 +370,8 @@
         L.tileLayer(mapProvider.tileUrl, { maxZoom: 19, attribution: mapProvider.attribution }).addTo(map);
         const eventLayer = L.layerGroup().addTo(map);
         const forecastLayer = L.layerGroup().addTo(map);
+        const particleLayer = L.layerGroup().addTo(map);
+        const vectorLayer = L.layerGroup().addTo(map);
         const impactLayer = L.layerGroup().addTo(map);
         const latLngs = track.map((point) => [Number(point.lat), Number(point.lon)]);
         L.circleMarker(latLngs[0], { radius: 9, color: "#ffffff", weight: 2, fillColor: "#c94b55", fillOpacity: 0.96 }).bindPopup(`<strong>${event.station_name}</strong><br>汙染事件：${event.event_id}<br>汙染物：${pollutantLabels[event.pollutant_name] || event.pollutant_name}<br>異常分數：${number(event.anomaly_score, 2)}`).addTo(eventLayer);
@@ -330,26 +380,43 @@
           const point = track[index];
           L.circleMarker(latLng, { radius: index === 0 ? 5 : 4, color: "#ffffff", weight: 1.5, fillColor: "#006d77", fillOpacity: 0.9 }).bindPopup(`<strong>+${point.hour} 小時</strong><br>距事件點：${number(point.distance_km, 1)} km<br>方向：${number(point.direction, 1)}°`).addTo(forecastLayer);
         });
+        const currentEnd = destinationPoint(event.lat, event.lon, window?.dominant_current_direction || track[1]?.direction || 0, 13);
+        const windEnd = destinationPoint(event.lat, event.lon, window?.dominant_wind_direction || track[1]?.direction || 0, 10);
+        L.polyline([[Number(event.lat), Number(event.lon)], [currentEnd.lat, currentEnd.lon]], { color: "#2a9d8f", weight: 4, opacity: 0.85 }).bindPopup(`主導海流：${number(window?.dominant_current_direction, 1)}°`).addTo(vectorLayer);
+        L.circleMarker([currentEnd.lat, currentEnd.lon], { radius: 5, color: "#ffffff", weight: 2, fillColor: "#2a9d8f", fillOpacity: 0.95 }).bindPopup("海流方向端點").addTo(vectorLayer);
+        L.polyline([[Number(event.lat), Number(event.lon)], [windEnd.lat, windEnd.lon]], { color: "#d99a1e", weight: 3, opacity: 0.85, dashArray: "7 7" }).bindPopup(`主導風向：${number(window?.dominant_wind_direction, 1)}°`).addTo(vectorLayer);
+        L.circleMarker([windEnd.lat, windEnd.lon], { radius: 5, color: "#ffffff", weight: 2, fillColor: "#d99a1e", fillOpacity: 0.95 }).bindPopup("風向端點").addTo(vectorLayer);
+        const particleMarkers = (particles || []).map((particle, index) => L.circleMarker([particle.lat, particle.lon], { radius: 3.4 + (index % 3) * 0.5, color: "#ffffff", weight: 0.7, fillColor: "#2a9d8f", fillOpacity: 0.58 }).bindPopup(`漂流粒子 ${index + 1}`).addTo(particleLayer));
+        let tick = 0;
+        const timer = setInterval(() => {
+          tick += 0.018;
+          particleMarkers.forEach((marker, index) => {
+            const phase = (((particles?.[index]?.phase || 0) + tick) % 1);
+            const next = particlePosition(event, window, phase, index);
+            marker.setLatLng([next.lat, next.lon]);
+            marker.setStyle({ fillOpacity: 0.38 + 0.32 * Math.sin(phase * Math.PI), radius: 2.8 + 2.1 * Math.sin(phase * Math.PI) });
+          });
+        }, 180);
         impacts.forEach((point) => {
           const color = point.impact_level === "高" ? "#c94b55" : point.impact_level === "中" ? "#d99a1e" : "#31688e";
           L.circleMarker([Number(point.lat), Number(point.lon)], { radius: 7, color: "#ffffff", weight: 2, fillColor: color, fillOpacity: 0.92 }).bindPopup(`<strong>${point.source_name}</strong><br>可能影響：${point.impact_level}<br>距擴散軌跡：${number(point.nearest_track_km, 1)} km<br>類型：${pointTypeLabels[point.source_type] || point.source_type}`).addTo(impactLayer);
         });
-        L.control.layers(null, { "汙染事件": eventLayer, "72 小時擴散軌跡": forecastLayer, "可能受影響區域": impactLayer }, { collapsed: false }).addTo(map);
-        const bounds = [...latLngs, ...impacts.map((point) => [Number(point.lat), Number(point.lon)])];
+        L.control.layers(null, { "汙染事件": eventLayer, "72 小時擴散軌跡": forecastLayer, "粒子漂流": particleLayer, "海流與風向": vectorLayer, "可能受影響區域": impactLayer }, { collapsed: false }).addTo(map);
+        const bounds = [...latLngs, [currentEnd.lat, currentEnd.lon], [windEnd.lat, windEnd.lon], ...impacts.map((point) => [Number(point.lat), Number(point.lon)])];
         if (bounds.length > 1) map.fitBounds(bounds, { padding: [44, 44], maxZoom: 11 });
         setTimeout(() => map.invalidateSize(), 120);
-        return () => { map.remove(); mapInstance.current = null; };
-      }, [event?.event_id, track.map((point) => `${point.lat},${point.lon}`).join("|"), impacts.map((point) => point.source_id).join("|"), hasLeaflet]);
-      if (!hasLeaflet) return <FallbackMap event={event} track={track} impacts={impacts} window={window} />;
-      return <div className="map-shell"><div className="map-tools"><p className="muted">底圖：{mapProvider.name}。可縮放、平移，並點選汙染事件、擴散軌跡與受影響區域。</p><div className="map-legend"><span className="legend-item"><span className="legend-dot event"></span>汙染事件</span><span className="legend-item"><span className="legend-line"></span>72 小時擴散軌跡</span><span className="legend-item"><span className="legend-dot impact"></span>可能受影響區域</span></div></div><div ref={mapNode} className="leaflet-map" aria-label="台灣海岸汙染擴散預測地圖"></div></div>;
+        return () => { clearInterval(timer); map.remove(); mapInstance.current = null; };
+      }, [event?.event_id, track.map((point) => `${point.lat},${point.lon}`).join("|"), particles?.length, impacts.map((point) => point.source_id).join("|"), hasLeaflet]);
+      if (!hasLeaflet) return <FallbackMap event={event} track={track} particles={particles} impacts={impacts} window={window} />;
+      return <div className="map-shell"><div className="map-tools"><p className="muted">底圖：{mapProvider.name}。可縮放、平移，並點選汙染事件、粒子、海流、風向與受影響區域。</p><div className="map-legend"><span className="legend-item"><span className="legend-dot event"></span>汙染事件</span><span className="legend-item"><span className="legend-line"></span>72 小時擴散軌跡</span><span className="legend-item"><span className="legend-dot particle"></span>粒子漂流</span><span className="legend-item"><span className="legend-line current"></span>海流</span><span className="legend-item"><span className="legend-line wind"></span>風向</span><span className="legend-item"><span className="legend-dot impact"></span>可能受影響區域</span></div></div><div ref={mapNode} className="leaflet-map" aria-label="台灣海岸汙染粒子漂流與擴散預測地圖"></div></div>;
     }
 
-    function FallbackMap({ event, track, impacts, window }) {
+    function FallbackMap({ event, track, particles, impacts, window }) {
       const minLon = 118.0, maxLon = 123.2, minLat = 21.5, maxLat = 26.4;
       const x = (lon) => ((Number(lon) - minLon) / (maxLon - minLon)) * 100;
       const y = (lat) => 100 - ((Number(lat) - minLat) / (maxLat - minLat)) * 100;
       const path = track.map((point, index) => `${index === 0 ? "M" : "L"} ${x(point.lon)} ${y(point.lat)}`).join(" ");
-      return <div className="fallback-map"><svg viewBox="0 0 100 100" role="img" aria-label="台灣海岸汙染擴散預測示意圖" preserveAspectRatio="xMidYMid meet"><rect width="100" height="100" fill="#e8f5f7" /><path d="M55 3 C65 11 70 25 67 39 C64 54 61 65 58 81 C56 90 48 96 42 88 C35 78 34 63 36 49 C38 34 42 18 55 3 Z" fill="#d7e8d1" stroke="#789d77" strokeWidth="0.8" /><text x="58" y="28" className="map-label">台灣</text><text x="9" y="12" className="map-small">119°E</text><text x="82" y="12" className="map-small">123°E</text><text x="4" y="91" className="map-small">22°N</text><text x="4" y="10" className="map-small">26°N</text>{path && <path d={path} fill="none" stroke="#c94b55" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />}{track.map((point) => <circle key={point.hour} cx={x(point.lon)} cy={y(point.lat)} r="1.5" fill="#006d77" stroke="#fff" strokeWidth="0.4"><title>+{point.hour} 小時</title></circle>)}{impacts.map((point) => <circle key={point.source_id} cx={x(point.lon)} cy={y(point.lat)} r="1.9" fill="#31688e" stroke="#fff" strokeWidth="0.5"><title>{point.source_name}</title></circle>)}{event && <circle cx={x(event.lon)} cy={y(event.lat)} r="2.8" fill="#c94b55" stroke="#fff" strokeWidth="0.8"><title>{event.station_name}</title></circle>}<g transform={`translate(78 78) rotate(${window?.dominant_current_direction || 0})`}><line x1="0" y1="0" x2="10" y2="0" stroke="#2a9d8f" strokeWidth="1.2" /><path d="M10 0 L7 -2 L7 2 Z" fill="#2a9d8f" /></g><text x="70" y="87" className="map-small">主導流向</text></svg></div>;
+      return <div className="fallback-map"><svg viewBox="0 0 100 100" role="img" aria-label="台灣海岸汙染擴散預測示意圖" preserveAspectRatio="xMidYMid meet"><rect width="100" height="100" fill="#e8f5f7" /><path d="M55 3 C65 11 70 25 67 39 C64 54 61 65 58 81 C56 90 48 96 42 88 C35 78 34 63 36 49 C38 34 42 18 55 3 Z" fill="#d7e8d1" stroke="#789d77" strokeWidth="0.8" /><text x="58" y="28" className="map-label">台灣</text><text x="9" y="12" className="map-small">119°E</text><text x="82" y="12" className="map-small">123°E</text><text x="4" y="91" className="map-small">22°N</text><text x="4" y="10" className="map-small">26°N</text>{path && <path d={path} fill="none" stroke="#c94b55" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />}{track.map((point) => <circle key={point.hour} cx={x(point.lon)} cy={y(point.lat)} r="1.5" fill="#006d77" stroke="#fff" strokeWidth="0.4"><title>+{point.hour} 小時</title></circle>)}{(particles || []).slice(0, 24).map((point) => <circle key={point.id} cx={x(point.lon)} cy={y(point.lat)} r="1" fill="#2a9d8f" opacity="0.55"><title>粒子漂流</title></circle>)}{impacts.map((point) => <circle key={point.source_id} cx={x(point.lon)} cy={y(point.lat)} r="1.9" fill="#31688e" stroke="#fff" strokeWidth="0.5"><title>{point.source_name}</title></circle>)}{event && <circle cx={x(event.lon)} cy={y(event.lat)} r="2.8" fill="#c94b55" stroke="#fff" strokeWidth="0.8"><title>{event.station_name}</title></circle>}<g transform={`translate(78 78) rotate(${window?.dominant_current_direction || 0})`}><line x1="0" y1="0" x2="10" y2="0" stroke="#2a9d8f" strokeWidth="1.2" /><path d="M10 0 L7 -2 L7 2 Z" fill="#2a9d8f" /></g><text x="70" y="87" className="map-small">海流</text><g transform={`translate(78 69) rotate(${window?.dominant_wind_direction || 0})`}><line x1="0" y1="0" x2="8" y2="0" stroke="#d99a1e" strokeWidth="1" strokeDasharray="2 1" /><path d="M8 0 L5.5 -1.8 L5.5 1.8 Z" fill="#d99a1e" /></g><text x="70" y="76" className="map-small">風向</text></svg></div>;
     }
 
     function Evidence({ event, probe }) {
@@ -359,9 +426,9 @@
       return <div className="grid"><section><h2>事件窗影像</h2><p className="muted">目前事件：{event?.event_id}，影像查詢窗：{period.start} 至 {period.end}</p><div className="api-grid" style={{ marginTop: 12 }}>{rows.map((row) => <div className="item" key={row.code}><h3>{row.code}</h3><p className="muted">用於判讀汙染水團、濁度或葉綠素變化。</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">開啟 API</a></div>)}</div></section><section><h2>資料原則</h2><div className="note">系統不自動補齊缺漏資料。若 API 權限不足或資料不存在，會列入資料需求，不用推估值假裝成實測值。</div></section><section className="full"><h2>觀測資料端點</h2><div className="api-grid">{stationRows.map((row, index) => <div className="item" key={`${row.url}-${index}`}><div className="item-head"><strong>{row.code}</strong><span className="badge">{row.status || "待確認"}</span></div><p className="muted">資料筆數：{number(row.record_count)}；欄位：{(row.sample_keys || []).slice(0, 5).join("、") || "無樣本"}</p><a className="btn" href={row.url} target="_blank" rel="noreferrer">查看資料</a></div>)}</div></section></div>;
     }
 
-    function ResponsePlan({ event, window, track, impacts }) {
+    function ResponsePlan({ event, window, track, particles, impacts, modules }) {
       const topImpacts = impacts.slice(0, 4);
-      return <div className="grid"><section><h2>應變優先順序</h2><div className="list"><div className="item"><div className="item-head"><strong>1. 異常測站複測</strong><span className="badge high">必要</span></div><p className="muted">先回到 {event?.station_name || "事件測站"} 確認汙染是否仍存在，並同步量測溫度、鹽度、濁度、DO、pH、導電度、流速與流向。</p></div><div className="item"><div className="item-head"><strong>2. 擴散方向斷面</strong><span className="badge mid">優先</span></div><p className="muted">沿 72 小時預測軌跡布設採樣點，確認汙染水團是否依順流方向移動。</p></div><div className="item"><div className="item-head"><strong>3. 受影響區域巡查</strong><span className="badge low">追蹤</span></div><p className="muted">優先巡查高風險沿岸參考點，必要時擴大到中風險區域。</p></div></div></section><section><h2>優先巡查點</h2><ImpactList impacts={topImpacts} /></section><section className="full"><h2>採樣地圖</h2><PollutionMap event={event} track={track} impacts={topImpacts} window={window} /></section></div>;
+      return <div className="grid"><section><h2>應變優先順序</h2><div className="list"><div className="item"><div className="item-head"><strong>1. 異常測站複測</strong><span className="badge high">必要</span></div><p className="muted">先回到 {event?.station_name || "事件測站"} 確認汙染是否仍存在，並同步量測溫度、鹽度、濁度、DO、pH、導電度、流速與流向。</p></div><div className="item"><div className="item-head"><strong>2. 擴散方向斷面</strong><span className="badge mid">優先</span></div><p className="muted">沿 72 小時預測軌跡與粒子高密度區布設採樣點，確認汙染水團是否依順流方向移動。</p></div><div className="item"><div className="item-head"><strong>3. 受影響區域巡查</strong><span className="badge low">追蹤</span></div><p className="muted">優先巡查高風險沿岸參考點，必要時擴大到中風險區域。</p></div></div></section><section><h2>優先巡查點</h2><ImpactList impacts={topImpacts} /></section><section className="full"><h2>汙染擴散可能造成的影響</h2><ImpactModules modules={modules} /></section><section className="full"><h2>採樣地圖</h2><PollutionMap event={event} track={track} particles={particles} impacts={topImpacts} window={window} /></section></div>;
     }
 
     function SystemNotes({ data }) {
